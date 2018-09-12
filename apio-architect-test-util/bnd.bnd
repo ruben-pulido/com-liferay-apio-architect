@@ -2,6 +2,8 @@ Bundle-Name: Liferay Apio Architect Test Utilities
 Bundle-SymbolicName: com.liferay.apio.architect.test.util
 Bundle-Version: 1.0.11
 Import-Package:\
+	!com.liferay.apio.architect.impl.endpoint.*,\
+	\
 	!org.hamcrest.*,\
 	\
 	!org.json.*,\
