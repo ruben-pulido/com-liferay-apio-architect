@@ -13,7 +13,7 @@ dependencies {
 	compileOnly group: "org.json", name: "json", version: "20180130"
 	compileOnly group: "org.skyscreamer", name: "jsonassert", version: "1.5.0"
 	compileOnly group: "com.liferay", name: "com.liferay.apio.architect.api", version: "1.6.0"
-	compileOnly group: "com.liferay", name: "com.liferay.apio.architect.impl", version: "1.0.9"
+	compileOnly group: "com.liferay", name: "com.liferay.apio.architect.impl", version: "1.0.11"
 }
 
 liferay {
