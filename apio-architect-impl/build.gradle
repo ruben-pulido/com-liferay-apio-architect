@@ -23,7 +23,7 @@ dependencies {
 	compileOnly group: "org.osgi", name: "org.osgi.core", version: "6.0.0"
 	compileOnly group: "org.osgi", name: "org.osgi.service.component.annotations", version: "1.3.0"
 	compileOnly group: "org.slf4j", name: "slf4j-api", version: "1.7.25"
-	compileOnly group: "com.liferay", name: "com.liferay.apio.architect.api", version: "1.5.0"
+	compileOnly group: "com.liferay", name: "com.liferay.apio.architect.api", version: "1.6.0"
 
 	testCompile group: "co.unruly", name: "java-8-matchers", version: "1.5"
 	testCompile group: "com.openpojo", name: "openpojo", version: "0.8.6"
