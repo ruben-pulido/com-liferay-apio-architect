@@ -16,6 +16,6 @@ dependencies {
 	compileOnly group: "com.liferay", name: "com.liferay.apio.architect.impl", version: "1.0.12"
 }
 
-liferay {
-	deployDir = file("${liferayHome}/osgi/test")
+deploy {
+	false
 }
