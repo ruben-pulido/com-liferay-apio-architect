@@ -40,7 +40,7 @@ dependencies {
 	compileOnly group: "com.liferay", name: "com.liferay.apio.architect.api", version: "1.8.0"
 	compileOnly project(":apps:apio-architect:apio-architect-exception-mapper-impl")
 	compileOnly group: "com.liferay", name: "com.liferay.apio.architect.impl", version: "1.0.0"
-	compileOnly project(":apps:apio-architect:apio-architect-uri-mapper-impl")
+	compileOnly group: "com.liferay", name: "com.liferay.apio.architect.uri.mapper.impl", version: "1.0.0"
 
 	runtime group: "ch.qos.logback", name: "logback-classic", version: "1.2.3"
 	runtime group: "org.apache.aries.jax.rs", name: "org.apache.aries.jax.rs.whiteboard", version: "1.0.0"
