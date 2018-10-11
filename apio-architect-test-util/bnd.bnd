@@ -1,6 +1,6 @@
 Bundle-Name: Liferay Apio Architect Test Utilities
 Bundle-SymbolicName: com.liferay.apio.architect.test.util
-Bundle-Version: 1.0.13
+Bundle-Version: 1.0.14
 Import-Package:\
 	!com.liferay.apio.architect.internal.endpoint.*,\
 	\
