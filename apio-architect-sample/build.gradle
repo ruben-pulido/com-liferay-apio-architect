@@ -37,7 +37,7 @@ dependencies {
 	compileOnly group: "org.osgi", name: "org.osgi.service.jaxrs", version: "1.0.0"
 	compileOnly group: "org.osgi", name: "org.osgi.util.function", version: "1.1.0"
 	compileOnly group: "org.osgi", name: "org.osgi.util.promise", version: "1.1.0"
-	compileOnly project(":apps:apio-architect:apio-architect-api")
+	compileOnly group: "com.liferay", name: "com.liferay.apio.architect.api", version: "1.8.0"
 	compileOnly project(":apps:apio-architect:apio-architect-exception-mapper-impl")
 	compileOnly project(":apps:apio-architect:apio-architect-impl")
 	compileOnly project(":apps:apio-architect:apio-architect-uri-mapper-impl")
