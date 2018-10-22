@@ -192,6 +192,8 @@ public @interface Vocabulary {
 		 */
 		public Class<? extends Identifier<?>> value();
 
+		public boolean reusable() default false;
+
 	}
 
 	/**
