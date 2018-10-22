@@ -76,7 +76,9 @@ public interface CollectionRoutes<T, S> {
 	 *
 	 * @return the function used to create a collection item, if the function
 	 *         exists; {@code Optional#empty()} otherwise
+	 * @deprecated use annotation builder instead
 	 */
+	@Deprecated
 	public Optional<CreateItemFunction<T>> getCreateItemFunctionOptional();
 
 	/**
@@ -115,7 +117,9 @@ public interface CollectionRoutes<T, S> {
 	 *
 	 * @return the function used to obtain the page, if the function exists;
 	 *         {@code Optional#empty()} otherwise
+	 * @deprecated use annotation builder instead
 	 */
+	@Deprecated
 	public Optional<GetPageFunction<T>> getGetPageFunctionOptional();
 
 	/**
