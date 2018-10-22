@@ -56,22 +56,6 @@ public interface BlogPosting extends Identifier<Long> {
 	@Field("articleBody")
 	public String getArticleBody();
 
-	@Field("people")
-	@RelatedCollection(value = Comment.class, reusable=true)
-	public default ModelNameModelIdIdentifier getModelNameModelIdIdentifier() {
-		return new ModelNameModelIdIdentifier() {
-			@Override
-			public long getModelId() {
-				return 0;
-			}
-
-			@Override
-			public String getModelName() {
-				return "0";
-			}
-		};
-	}
-
 	/**
 	 * Returns the blog posting comments parent ID.
 	 *
@@ -144,6 +128,32 @@ public interface BlogPosting extends Identifier<Long> {
 	 */
 	@Id
 	public Long getId();
+
+	/**
+	 * Returns the ModelNameModelIdIdentifier for this blog.
+	 *
+	 * @return the ModelNameModelIdIdentifier for this blog
+	 * @review
+	 */
+	@Field("comment-for-this-blog")
+	@RelatedCollection(reusable = true, value = Comment.class)
+	public default ModelNameModelIdIdentifier getModelNameModelIdIdentifier() {
+		return new ModelNameModelIdIdentifier() {
+
+			@Override
+			public long getModelId() {
+				return getId();
+			}
+
+			@Override
+			public String getModelName() {
+				String simpleName = BlogPosting.class.getSimpleName();
+
+				return simpleName.toLowerCase();
+			}
+
+		};
+	}
 
 	/**
 	 * Returns the list of blog posting's reviews.

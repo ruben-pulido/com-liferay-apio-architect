@@ -185,14 +185,20 @@ public @interface Vocabulary {
 	public @interface RelatedCollection {
 
 		/**
+		 * Returns if the action is reusable
+		 *
+		 * @return if the action is reusable
+		 * @review
+		 */
+		public boolean reusable() default false;
+
+		/**
 		 * Returns the class of the resource being linked to.
 		 *
 		 * @return the class of the resource being linked to
 		 * @review
 		 */
 		public Class<? extends Identifier<?>> value();
-
-		public boolean reusable() default false;
 
 	}
 
