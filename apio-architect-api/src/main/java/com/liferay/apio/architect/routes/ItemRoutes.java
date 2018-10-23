@@ -86,8 +86,8 @@ public interface ItemRoutes<T, S> {
 	 * through the {@link ItemRoutes.Builder} and the function therefore exists.
 	 * Returns {@code Optional#empty()} otherwise.
 	 *
-	 * @return the function used to delete the item, if the function exists;
-	 *         {@code Optional#empty()} otherwise
+	 * @return     the function used to delete the item, if the function exists;
+	 *             {@code Optional#empty()} otherwise
 	 * @deprecated use annotation builder instead
 	 */
 	@Deprecated
