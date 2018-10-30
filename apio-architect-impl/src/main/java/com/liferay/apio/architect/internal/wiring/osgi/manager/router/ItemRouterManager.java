@@ -14,26 +14,23 @@
 
 package com.liferay.apio.architect.internal.wiring.osgi.manager.router;
 
-import static com.liferay.apio.architect.internal.alias.ProvideFunction.curry;
 import static com.liferay.apio.architect.internal.wiring.osgi.manager.cache.ManagerCache.INSTANCE;
 
 import static org.slf4j.LoggerFactory.getLogger;
 
-import com.liferay.apio.architect.internal.annotation.ActionManager;
+import com.liferay.apio.architect.internal.routes.ItemRoutesImpl;
 import com.liferay.apio.architect.internal.routes.ItemRoutesImpl.BuilderImpl;
 import com.liferay.apio.architect.internal.wiring.osgi.manager.base.ClassNameBaseManager;
-import com.liferay.apio.architect.internal.wiring.osgi.manager.provider.ProviderManager;
 import com.liferay.apio.architect.internal.wiring.osgi.manager.representable.NameManager;
 import com.liferay.apio.architect.internal.wiring.osgi.manager.uri.mapper.PathIdentifierMapperManager;
 import com.liferay.apio.architect.router.ItemRouter;
 import com.liferay.apio.architect.routes.ItemRoutes;
 import com.liferay.apio.architect.routes.ItemRoutes.Builder;
 
-import java.util.List;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.stream.Stream;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -52,6 +49,22 @@ public class ItemRouterManager extends ClassNameBaseManager<ItemRouter> {
 
 	public ItemRouterManager() {
 		super(ItemRouter.class, 2);
+	}
+
+	public Stream<ActionSemantics> getActionSemantics() {
+		Map<String, ItemRoutes> itemRoutes = getItemRoutes();
+
+		Collection<ItemRoutes> values = itemRoutes.values();
+
+		Stream<ItemRoutes> stream = values.stream();
+
+		return stream.map(
+			ItemRoutesImpl.class::cast
+		).map(
+			ItemRoutesImpl::getActionSemantics
+		).flatMap(
+			Collection::stream
+		);
 	}
 
 	public Map<String, ItemRoutes> getItemRoutes() {
@@ -98,35 +111,17 @@ public class ItemRouterManager extends ClassNameBaseManager<ItemRouter> {
 					return;
 				}
 
-				Set<String> neededProviders = new TreeSet<>();
-
 				Builder<Object, Object> builder = new BuilderImpl<>(
-					name, curry(_providerManager::provideMandatory),
-					neededProviders::add,
+					Resource.item(name),
 					_pathIdentifierMapperManager::mapToIdentifierOrFail,
-					identifier -> _pathIdentifierMapperManager.mapToPath(
-						name, identifier),
-					_nameManager::getNameOptional, _actionManager);
+					_nameManager::getNameOptional);
 
 				@SuppressWarnings("unchecked")
 				ItemRoutes itemRoutes = itemRouter.itemRoutes(builder);
 
-				List<String> missingProviders =
-					_providerManager.getMissingProviders(neededProviders);
-
-				if (!missingProviders.isEmpty()) {
-					_logger.warn(
-						"Missing providers for classes: {}", missingProviders);
-
-					return;
-				}
-
 				INSTANCE.putItemRoutes(name, itemRoutes);
 			});
 	}
-
-	@Reference
-	private ActionManager _actionManager;
 
 	private Logger _logger = getLogger(getClass());
 
@@ -135,8 +130,5 @@ public class ItemRouterManager extends ClassNameBaseManager<ItemRouter> {
 
 	@Reference
 	private PathIdentifierMapperManager _pathIdentifierMapperManager;
-
-	@Reference
-	private ProviderManager _providerManager;
 
 }

@@ -19,7 +19,6 @@ import static com.liferay.apio.architect.internal.operation.util.OperationUtil.t
 import static com.liferay.apio.architect.internal.routes.RoutesTestUtil.FORM_BUILDER_FUNCTION;
 import static com.liferay.apio.architect.internal.routes.RoutesTestUtil.IDENTIFIER_FUNCTION;
 import static com.liferay.apio.architect.internal.routes.RoutesTestUtil.PAGINATION;
-import static com.liferay.apio.architect.internal.routes.RoutesTestUtil.REQUEST_PROVIDE_FUNCTION;
 import static com.liferay.apio.architect.internal.routes.RoutesTestUtil.hasNestedAddingPermissionFunction;
 import static com.liferay.apio.architect.internal.routes.RoutesTestUtil.keyValueFrom;
 import static com.liferay.apio.architect.internal.unsafe.Unsafe.unsafeCast;
@@ -78,10 +77,7 @@ public class NestedCollectionRoutesImplTest extends BaseRoutesTest {
 	@Test(expected = NotFoundException.class)
 	public void testEmptyBuilderBuildsEmptyRoutes() {
 		Builder<String, Long, Long> builder = new BuilderImpl<>(
-			"name", "nested", REQUEST_PROVIDE_FUNCTION,
-			__ -> {
-			},
-			__ -> null, IDENTIFIER_FUNCTION, actionManager,
+			"name", "nested", __ -> null, IDENTIFIER_FUNCTION,
 			__ -> Optional.of("name"));
 
 		NestedCollectionRoutes<String, Long, Long> nestedCollectionRoutes =
@@ -109,8 +105,7 @@ public class NestedCollectionRoutesImplTest extends BaseRoutesTest {
 		Set<String> neededProviders = new TreeSet<>();
 
 		Builder<String, Long, Long> builder = new BuilderImpl<>(
-			"name", "nested", REQUEST_PROVIDE_FUNCTION, neededProviders::add,
-			__ -> null, IDENTIFIER_FUNCTION, actionManager,
+			"name", "nested", __ -> null, IDENTIFIER_FUNCTION,
 			__ -> Optional.of("name"));
 
 		NestedCollectionRoutes<String, Long, Long> nestedCollectionRoutes =
@@ -136,8 +131,7 @@ public class NestedCollectionRoutesImplTest extends BaseRoutesTest {
 		Set<String> neededProviders = new TreeSet<>();
 
 		Builder<String, Long, Long> builder = new BuilderImpl<>(
-			"name", "nested", REQUEST_PROVIDE_FUNCTION, neededProviders::add,
-			__ -> null, IDENTIFIER_FUNCTION, actionManager,
+			"name", "nested", __ -> null, IDENTIFIER_FUNCTION,
 			__ -> Optional.of("name"));
 
 		NestedCollectionRoutes<String, Long, Long> nestedCollectionRoutes =
@@ -164,8 +158,7 @@ public class NestedCollectionRoutesImplTest extends BaseRoutesTest {
 		Set<String> neededProviders = new TreeSet<>();
 
 		Builder<String, Long, Long> builder = new BuilderImpl<>(
-			"name", "nested", REQUEST_PROVIDE_FUNCTION, neededProviders::add,
-			__ -> null, IDENTIFIER_FUNCTION, actionManager,
+			"name", "nested", __ -> null, IDENTIFIER_FUNCTION,
 			__ -> Optional.of("name"));
 
 		NestedCollectionRoutes<String, Long, Long> nestedCollectionRoutes =
@@ -191,8 +184,7 @@ public class NestedCollectionRoutesImplTest extends BaseRoutesTest {
 		Set<String> neededProviders = new TreeSet<>();
 
 		Builder<String, Long, Long> builder = new BuilderImpl<>(
-			"name", "nested", REQUEST_PROVIDE_FUNCTION, neededProviders::add,
-			__ -> null, IDENTIFIER_FUNCTION, actionManager,
+			"name", "nested", __ -> null, IDENTIFIER_FUNCTION,
 			__ -> Optional.of("name"));
 
 		NestedCollectionRoutes<String, Long, Long> nestedCollectionRoutes =
@@ -219,8 +211,7 @@ public class NestedCollectionRoutesImplTest extends BaseRoutesTest {
 		Set<String> neededProviders = new TreeSet<>();
 
 		Builder<String, Long, Long> builder = new BuilderImpl<>(
-			"name", "nested", REQUEST_PROVIDE_FUNCTION, neededProviders::add,
-			__ -> null, IDENTIFIER_FUNCTION, actionManager,
+			"name", "nested", __ -> null, IDENTIFIER_FUNCTION,
 			__ -> Optional.of("name"));
 
 		NestedCollectionRoutes<String, Long, Long> nestedCollectionRoutes =
@@ -241,8 +232,7 @@ public class NestedCollectionRoutesImplTest extends BaseRoutesTest {
 		Set<String> neededProviders = new TreeSet<>();
 
 		Builder<String, Long, Long> builder = new BuilderImpl<>(
-			"name", "nested", REQUEST_PROVIDE_FUNCTION, neededProviders::add,
-			__ -> null, IDENTIFIER_FUNCTION, actionManager,
+			"name", "nested", __ -> null, IDENTIFIER_FUNCTION,
 			__ -> Optional.of("name"));
 
 		NestedCollectionRoutes<String, Long, Long> nestedCollectionRoutes =
@@ -263,8 +253,7 @@ public class NestedCollectionRoutesImplTest extends BaseRoutesTest {
 		Set<String> neededProviders = new TreeSet<>();
 
 		Builder<String, Long, Long> builder = new BuilderImpl<>(
-			"name", "nested", REQUEST_PROVIDE_FUNCTION, neededProviders::add,
-			__ -> null, IDENTIFIER_FUNCTION, actionManager,
+			"name", "nested", __ -> null, IDENTIFIER_FUNCTION,
 			__ -> Optional.of("name"));
 
 		NestedCollectionRoutes<String, Long, Long> nestedCollectionRoutes =
@@ -288,8 +277,7 @@ public class NestedCollectionRoutesImplTest extends BaseRoutesTest {
 		Set<String> neededProviders = new TreeSet<>();
 
 		Builder<String, Long, Long> builder = new BuilderImpl<>(
-			"name", "nested", REQUEST_PROVIDE_FUNCTION, neededProviders::add,
-			__ -> null, IDENTIFIER_FUNCTION, actionManager,
+			"name", "nested", __ -> null, IDENTIFIER_FUNCTION,
 			__ -> Optional.of("name"));
 
 		NestedCollectionRoutes<String, Long, Long> nestedCollectionRoutes =
@@ -314,8 +302,7 @@ public class NestedCollectionRoutesImplTest extends BaseRoutesTest {
 		Set<String> neededProviders = new TreeSet<>();
 
 		Builder<String, Long, Long> builder = new BuilderImpl<>(
-			"name", "nested", REQUEST_PROVIDE_FUNCTION, neededProviders::add,
-			__ -> null, IDENTIFIER_FUNCTION, actionManager,
+			"name", "nested", __ -> null, IDENTIFIER_FUNCTION,
 			__ -> Optional.of("name"));
 
 		NestedCollectionRoutes<String, Long, Long> nestedCollectionRoutes =
@@ -336,8 +323,7 @@ public class NestedCollectionRoutesImplTest extends BaseRoutesTest {
 		Set<String> neededProviders = new TreeSet<>();
 
 		Builder<String, Long, Long> builder = new BuilderImpl<>(
-			"name", "nested", REQUEST_PROVIDE_FUNCTION, neededProviders::add,
-			__ -> null, IDENTIFIER_FUNCTION, actionManager,
+			"name", "nested", __ -> null, IDENTIFIER_FUNCTION,
 			__ -> Optional.of("name"));
 
 		NestedCollectionRoutes<String, Long, Long> nestedCollectionRoutes =

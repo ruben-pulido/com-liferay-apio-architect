@@ -14,8 +14,11 @@
 
 package com.liferay.apio.architect.internal.routes;
 
-import static com.liferay.apio.architect.internal.routes.RoutesBuilderUtil.provide;
-import static com.liferay.apio.architect.operation.HTTPMethod.GET;
+import static com.liferay.apio.architect.internal.unsafe.Unsafe.unsafeCast;
+
+import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.unmodifiableList;
 
 import com.liferay.apio.architect.alias.IdentifierFunction;
 import com.liferay.apio.architect.alias.form.FormBuilderFunction;
@@ -35,27 +38,26 @@ import com.liferay.apio.architect.function.throwable.ThrowableHexaFunction;
 import com.liferay.apio.architect.function.throwable.ThrowablePentaFunction;
 import com.liferay.apio.architect.function.throwable.ThrowableTetraFunction;
 import com.liferay.apio.architect.function.throwable.ThrowableTriFunction;
-import com.liferay.apio.architect.functional.Try;
 import com.liferay.apio.architect.identifier.Identifier;
-import com.liferay.apio.architect.internal.alias.ProvideFunction;
-import com.liferay.apio.architect.internal.annotation.ActionKey;
-import com.liferay.apio.architect.internal.annotation.ActionManager;
 import com.liferay.apio.architect.internal.form.FormImpl;
+import com.liferay.apio.architect.internal.pagination.PageImpl;
 import com.liferay.apio.architect.internal.single.model.SingleModelImpl;
+import com.liferay.apio.architect.internal.wiring.osgi.manager.router.ActionSemantics;
+import com.liferay.apio.architect.internal.wiring.osgi.manager.router.Resource;
+import com.liferay.apio.architect.pagination.Page;
 import com.liferay.apio.architect.pagination.PageItems;
 import com.liferay.apio.architect.pagination.Pagination;
 import com.liferay.apio.architect.routes.CollectionRoutes;
+import com.liferay.apio.architect.single.model.SingleModel;
 import com.liferay.apio.architect.uri.Path;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * @author Alejandro Hernández
@@ -63,66 +65,59 @@ import java.util.function.Function;
 public class CollectionRoutesImpl<T, S> implements CollectionRoutes<T, S> {
 
 	public CollectionRoutesImpl(BuilderImpl<T, S> builderImpl) {
-		_batchCreateItemFunction = builderImpl._batchCreateItemFunction;
-		_createItemFunction = builderImpl._createItemFunction;
-		_form = builderImpl._form;
+		_actionSemantics = unmodifiableList(builderImpl._actionSemantics);
+	}
 
-		_customRoutes = builderImpl._customRoutes;
-		_customPageFunctions = builderImpl._customRouteFunctions;
+	public List<ActionSemantics> getActionSemantics() {
+		return _actionSemantics;
 	}
 
 	@Override
 	public Optional<BatchCreateItemFunction<S>>
 		getBatchCreateItemFunctionOptional() {
 
-		return Optional.ofNullable(_batchCreateItemFunction);
+		return Optional.empty();
 	}
 
 	@Override
 	public Optional<CreateItemFunction<T>> getCreateItemFunctionOptional() {
-		return Optional.ofNullable(_createItemFunction);
+		return Optional.empty();
 	}
 
 	@Override
 	public Optional<Map<String, CustomPageFunction<?>>>
 		getCustomPageFunctionsOptional() {
 
-		return Optional.of(_customPageFunctions);
+		return Optional.empty();
 	}
 
 	@Override
 	public Map<String, CustomRoute> getCustomRoutes() {
-		return _customRoutes;
+		return Collections.emptyMap();
 	}
 
 	@Override
 	public Optional<Form> getFormOptional() {
-		return Optional.ofNullable(_form);
+		return Optional.empty();
 	}
 
 	@Override
 	public Optional<GetPageFunction<T>> getGetPageFunctionOptional() {
-		throw new UnsupportedOperationException();
+		return Optional.empty();
 	}
 
 	public static class BuilderImpl<T, S> implements Builder<T, S> {
 
 		public BuilderImpl(
-			String name, ProvideFunction provideFunction,
-			Consumer<String> neededProviderConsumer,
+			Resource.Paged pagedResource,
 			Function<Path, ?> pathToIdentifierFunction,
 			Function<T, S> modelToIdentifierFunction,
-			Function<String, Optional<String>> nameFunction,
-			ActionManager actionManager) {
+			Function<String, Optional<String>> nameFunction) {
 
-			_name = name;
-			_provideFunction = provideFunction;
-			_neededProviderConsumer = neededProviderConsumer;
-
+			_pagedResource = pagedResource;
 			_pathToIdentifierFunction = pathToIdentifierFunction::apply;
 			_modelToIdentifierFunction = modelToIdentifierFunction;
 			_nameFunction = nameFunction;
-			_actionManager = actionManager;
 		}
 
 		@Override
@@ -151,33 +146,57 @@ public class CollectionRoutesImpl<T, S> implements CollectionRoutes<T, S> {
 			HasAddingPermissionFunction hasAddingPermissionFunction,
 			FormBuilderFunction<R> formBuilderFunction) {
 
-			_neededProviderConsumer.accept(aClass.getName());
-
-			_hasAddingPermissionFunction = hasAddingPermissionFunction;
-
 			Form<R> form = formBuilderFunction.apply(
 				new FormImpl.BuilderImpl<>(
-					Arrays.asList("c", _name), _pathToIdentifierFunction,
-					_nameFunction));
+					asList("c", _pagedResource.getName()),
+					_pathToIdentifierFunction, _nameFunction));
 
-			_form = form;
+			ActionSemantics batchCreateActionSemantics =
+				ActionSemantics.ofResource(
+					_pagedResource
+				).name(
+					"batch-create"
+				).method(
+					"POST"
+				).provide(
+					aClass
+				).returns(
+					BatchResult.class
+				).receivesListOf(
+					form
+				).execute(
+					params -> batchCreatorThrowableBiFunction.andThen(
+						t -> new BatchResult<>(t, _pagedResource.getName())
+					).apply(
+						form.getList((Body)params.get(1)),
+						unsafeCast(params.get(0))
+					)
+				);
 
-			_createItemFunction = httpServletRequest -> body -> provide(
-				_provideFunction.apply(httpServletRequest), aClass,
-				a -> creatorThrowableBiFunction.andThen(
+			_actionSemantics.add(batchCreateActionSemantics);
+
+			ActionSemantics createActionSemantics = ActionSemantics.ofResource(
+				_pagedResource
+			).name(
+				"create"
+			).method(
+				"POST"
+			).provide(
+				aClass
+			).returns(
+				SingleModel.class
+			).receivesSingle(
+				form
+			).execute(
+				params -> creatorThrowableBiFunction.andThen(
 					t -> new SingleModelImpl<>(
-						t, _name, Collections.emptyList())
+						t, _pagedResource.getName(), emptyList())
 				).apply(
-					form.get(body), a
-				));
+					form.get((Body)params.get(1)), unsafeCast(params.get(0))
+				)
+			);
 
-			_batchCreateItemFunction = httpServletRequest -> body -> provide(
-				_provideFunction.apply(httpServletRequest), aClass,
-				a -> batchCreatorThrowableBiFunction.andThen(
-					t -> new BatchResult<>(t, _name)
-				).apply(
-					form.getList(body), a
-				));
+			_actionSemantics.add(createActionSemantics);
 
 			return this;
 		}
@@ -203,31 +222,54 @@ public class CollectionRoutesImpl<T, S> implements CollectionRoutes<T, S> {
 			HasAddingPermissionFunction hasAddingPermissionFunction,
 			FormBuilderFunction<R> formBuilderFunction) {
 
-			_hasAddingPermissionFunction = hasAddingPermissionFunction;
-
 			Form<R> form = formBuilderFunction.apply(
 				new FormImpl.BuilderImpl<>(
-					Arrays.asList("c", _name), _pathToIdentifierFunction,
-					_nameFunction));
+					asList("c", _pagedResource.getName()),
+					_pathToIdentifierFunction, _nameFunction));
 
-			_form = form;
-
-			_createItemFunction = httpServletRequest -> body ->
-				Try.fromFallible(
-					() -> creatorThrowableFunction.andThen(
-						t -> new SingleModelImpl<>(
-							t, _name, Collections.emptyList())
+			ActionSemantics batchCreateActionSemantics =
+				ActionSemantics.ofResource(
+					_pagedResource
+				).name(
+					"batch-create"
+				).method(
+					"POST"
+				).provide(
+				).returns(
+					BatchResult.class
+				).receivesListOf(
+					form
+				).execute(
+					params -> batchCreatorThrowableFunction.andThen(
+						t -> new BatchResult<>(t, _pagedResource.getName())
 					).apply(
-						form.get(body)
-					));
+						form.getList((Body)params.get(0))
+					)
+				);
 
-			_batchCreateItemFunction = httpServletRequest -> body ->
-				Try.fromFallible(
-					() -> batchCreatorThrowableFunction.andThen(
-						t -> new BatchResult<>(t, _name)
-					).apply(
-						form.getList(body)
-					));
+			_actionSemantics.add(batchCreateActionSemantics);
+
+			ActionSemantics createActionSemantics = ActionSemantics.ofResource(
+				_pagedResource
+			).name(
+				"create"
+			).method(
+				"POST"
+			).provideNothing(
+			).returns(
+				SingleModel.class
+			).receivesSingle(
+				form
+			).execute(
+				params -> creatorThrowableFunction.andThen(
+					t -> new SingleModelImpl<>(
+						t, _pagedResource.getName(), emptyList())
+				).apply(
+					form.get((Body)params.get(0))
+				)
+			);
+
+			_actionSemantics.add(createActionSemantics);
 
 			return this;
 		}
@@ -263,38 +305,60 @@ public class CollectionRoutesImpl<T, S> implements CollectionRoutes<T, S> {
 			HasAddingPermissionFunction hasAddingPermissionFunction,
 			FormBuilderFunction<R> formBuilderFunction) {
 
-			_neededProviderConsumer.accept(aClass.getName());
-			_neededProviderConsumer.accept(bClass.getName());
-			_neededProviderConsumer.accept(cClass.getName());
-			_neededProviderConsumer.accept(dClass.getName());
-
-			_hasAddingPermissionFunction = hasAddingPermissionFunction;
-
 			Form<R> form = formBuilderFunction.apply(
 				new FormImpl.BuilderImpl<>(
-					Arrays.asList("c", _name), _pathToIdentifierFunction,
-					_nameFunction));
+					asList("c", _pagedResource.getName()),
+					_pathToIdentifierFunction, _nameFunction));
 
-			_form = form;
+			ActionSemantics batchCreateActionSemantics =
+				ActionSemantics.ofResource(
+					_pagedResource
+				).name(
+					"batch-create"
+				).method(
+					"POST"
+				).provide(
+					aClass, bClass, cClass, dClass
+				).returns(
+					BatchResult.class
+				).receivesListOf(
+					form
+				).execute(
+					params -> batchCreatorThrowablePentaFunction.andThen(
+						t -> new BatchResult<>(t, _pagedResource.getName())
+					).apply(
+						form.getList((Body)params.get(4)),
+						unsafeCast(params.get(0)), unsafeCast(params.get(1)),
+						unsafeCast(params.get(2)), unsafeCast(params.get(3))
+					)
+				);
 
-			_createItemFunction = httpServletRequest -> body -> provide(
-				_provideFunction.apply(httpServletRequest), aClass, bClass,
-				cClass, dClass,
-				(a, b, c, d) -> creatorThrowablePentaFunction.andThen(
+			_actionSemantics.add(batchCreateActionSemantics);
+
+			ActionSemantics createActionSemantics = ActionSemantics.ofResource(
+				_pagedResource
+			).name(
+				"create"
+			).method(
+				"POST"
+			).provide(
+				aClass, bClass, cClass, dClass
+			).returns(
+				SingleModel.class
+			).receivesSingle(
+				form
+			).execute(
+				params -> creatorThrowablePentaFunction.andThen(
 					t -> new SingleModelImpl<>(
-						t, _name, Collections.emptyList())
+						t, _pagedResource.getName(), emptyList())
 				).apply(
-					form.get(body), a, b, c, d
-				));
+					form.get((Body)params.get(4)), unsafeCast(params.get(0)),
+					unsafeCast(params.get(1)), unsafeCast(params.get(2)),
+					unsafeCast(params.get(3))
+				)
+			);
 
-			_batchCreateItemFunction = httpServletRequest -> body -> provide(
-				_provideFunction.apply(httpServletRequest), aClass, bClass,
-				cClass, dClass,
-				(a, b, c, d) -> batchCreatorThrowablePentaFunction.andThen(
-					t -> new BatchResult<>(t, _name)
-				).apply(
-					form.getList(body), a, b, c, d
-				));
+			_actionSemantics.add(createActionSemantics);
 
 			return this;
 		}
@@ -327,37 +391,59 @@ public class CollectionRoutesImpl<T, S> implements CollectionRoutes<T, S> {
 			HasAddingPermissionFunction hasAddingPermissionFunction,
 			FormBuilderFunction<R> formBuilderFunction) {
 
-			_neededProviderConsumer.accept(aClass.getName());
-			_neededProviderConsumer.accept(bClass.getName());
-			_neededProviderConsumer.accept(cClass.getName());
-
-			_hasAddingPermissionFunction = hasAddingPermissionFunction;
-
 			Form<R> form = formBuilderFunction.apply(
 				new FormImpl.BuilderImpl<>(
-					Arrays.asList("c", _name), _pathToIdentifierFunction,
-					_nameFunction));
+					asList("c", _pagedResource.getName()),
+					_pathToIdentifierFunction, _nameFunction));
 
-			_form = form;
+			ActionSemantics batchCreateActionSemantics =
+				ActionSemantics.ofResource(
+					_pagedResource
+				).name(
+					"batch-create"
+				).method(
+					"POST"
+				).provide(
+					aClass, bClass, cClass
+				).returns(
+					BatchResult.class
+				).receivesListOf(
+					form
+				).execute(
+					params -> batchCreatorThrowableTetraFunction.andThen(
+						t -> new BatchResult<>(t, _pagedResource.getName())
+					).apply(
+						form.getList((Body)params.get(3)),
+						unsafeCast(params.get(0)), unsafeCast(params.get(1)),
+						unsafeCast(params.get(2))
+					)
+				);
 
-			_createItemFunction = httpServletRequest -> body -> provide(
-				_provideFunction.apply(httpServletRequest), aClass, bClass,
-				cClass,
-				(a, b, c) -> creatorThrowableTetraFunction.andThen(
+			_actionSemantics.add(batchCreateActionSemantics);
+
+			ActionSemantics createActionSemantics = ActionSemantics.ofResource(
+				_pagedResource
+			).name(
+				"create"
+			).method(
+				"POST"
+			).provide(
+				aClass, bClass, cClass
+			).returns(
+				SingleModel.class
+			).receivesSingle(
+				form
+			).execute(
+				params -> creatorThrowableTetraFunction.andThen(
 					t -> new SingleModelImpl<>(
-						t, _name, Collections.emptyList())
+						t, _pagedResource.getName(), emptyList())
 				).apply(
-					form.get(body), a, b, c
-				));
+					form.get((Body)params.get(3)), unsafeCast(params.get(0)),
+					unsafeCast(params.get(1)), unsafeCast(params.get(2))
+				)
+			);
 
-			_batchCreateItemFunction = httpServletRequest -> body -> provide(
-				_provideFunction.apply(httpServletRequest), aClass, bClass,
-				cClass,
-				(a, b, c) -> batchCreatorThrowableTetraFunction.andThen(
-					t -> new BatchResult<>(t, _name)
-				).apply(
-					form.getList(body), a, b, c
-				));
+			_actionSemantics.add(createActionSemantics);
 
 			return this;
 		}
@@ -390,34 +476,58 @@ public class CollectionRoutesImpl<T, S> implements CollectionRoutes<T, S> {
 			HasAddingPermissionFunction hasAddingPermissionFunction,
 			FormBuilderFunction<R> formBuilderFunction) {
 
-			_neededProviderConsumer.accept(aClass.getName());
-			_neededProviderConsumer.accept(bClass.getName());
-
-			_hasAddingPermissionFunction = hasAddingPermissionFunction;
-
 			Form<R> form = formBuilderFunction.apply(
 				new FormImpl.BuilderImpl<>(
-					Arrays.asList("c", _name), _pathToIdentifierFunction,
-					_nameFunction));
+					asList("c", _pagedResource.getName()),
+					_pathToIdentifierFunction, _nameFunction));
 
-			_form = form;
+			ActionSemantics batchCreateActionSemantics =
+				ActionSemantics.ofResource(
+					_pagedResource
+				).name(
+					"batch-create"
+				).method(
+					"POST"
+				).provide(
+					aClass, bClass
+				).returns(
+					BatchResult.class
+				).receivesListOf(
+					form
+				).execute(
+					params -> batchCreatorThrowableTriFunction.andThen(
+						t -> new BatchResult<>(t, _pagedResource.getName())
+					).apply(
+						form.getList((Body)params.get(2)),
+						unsafeCast(params.get(0)), unsafeCast(params.get(1))
+					)
+				);
 
-			_createItemFunction = httpServletRequest -> body -> provide(
-				_provideFunction.apply(httpServletRequest), aClass, bClass,
-				(a, b) -> creatorThrowableTriFunction.andThen(
+			_actionSemantics.add(batchCreateActionSemantics);
+
+			ActionSemantics createActionSemantics = ActionSemantics.ofResource(
+				_pagedResource
+			).name(
+				"create"
+			).method(
+				"POST"
+			).provide(
+				aClass, bClass
+			).returns(
+				SingleModel.class
+			).receivesSingle(
+				form
+			).execute(
+				params -> creatorThrowableTriFunction.andThen(
 					t -> new SingleModelImpl<>(
-						t, _name, Collections.emptyList())
+						t, _pagedResource.getName(), emptyList())
 				).apply(
-					form.get(body), a, b
-				));
+					form.get((Body)params.get(2)), unsafeCast(params.get(0)),
+					unsafeCast(params.get(1))
+				)
+			);
 
-			_batchCreateItemFunction = httpServletRequest -> body -> provide(
-				_provideFunction.apply(httpServletRequest), aClass, bClass,
-				(a, b) -> batchCreatorThrowableTriFunction.andThen(
-					t -> new BatchResult<>(t, _name)
-				).apply(
-					form.getList(body), a, b
-				));
+			_actionSemantics.add(createActionSemantics);
 
 			return this;
 		}
@@ -431,25 +541,32 @@ public class CollectionRoutesImpl<T, S> implements CollectionRoutes<T, S> {
 				Function<Credentials, Boolean> permissionFunction,
 				FormBuilderFunction<R> formBuilderFunction) {
 
-			String name = customRoute.getName();
+			Form<R> form = _getForm(
+				formBuilderFunction,
+				asList("p", _pagedResource.getName(), customRoute.getName()));
 
-			_calculateForm(customRoute, formBuilderFunction, name);
+			ActionSemantics createActionSemantics = ActionSemantics.ofResource(
+				_pagedResource
+			).name(
+				customRoute.getName()
+			).method(
+				customRoute.getMethod()
+			).provide(
+				Pagination.class
+			).returns(
+				SingleModel.class
+			).receivesSingle(
+				form
+			).execute(
+				params -> throwableBiFunction.andThen(
+					t -> new SingleModelImpl<>(t, _getResourceName(supplier))
+				).apply(
+					(Pagination)params.get(0),
+					_getModel(form, () -> (Body)params.get(1))
+				)
+			);
 
-			_customRoutes.put(name, customRoute);
-			_customPermissionFunctions.put(name, permissionFunction);
-
-			CustomPageFunction<U> requestFunction =
-				httpServletRequest -> body -> provide(
-					_provideFunction.apply(httpServletRequest),
-					Pagination.class,
-					pagination -> throwableBiFunction.andThen(
-						model -> new SingleModelImpl(
-							model, _getResourceName(supplier))
-					).apply(
-						pagination, _getModel(customRoute, body)
-					));
-
-			_customRouteFunctions.put(name, requestFunction);
+			_actionSemantics.add(createActionSemantics);
 
 			return this;
 		}
@@ -465,30 +582,34 @@ public class CollectionRoutesImpl<T, S> implements CollectionRoutes<T, S> {
 				Function<Credentials, Boolean> permissionFunction,
 				FormBuilderFunction<R> formBuilderFunction) {
 
-			_neededProviderConsumer.accept(aClass.getName());
-			_neededProviderConsumer.accept(bClass.getName());
-			_neededProviderConsumer.accept(cClass.getName());
-			_neededProviderConsumer.accept(dClass.getName());
+			Form<R> form = _getForm(
+				formBuilderFunction,
+				asList("p", _pagedResource.getName(), customRoute.getName()));
 
-			String name = customRoute.getName();
+			ActionSemantics createActionSemantics = ActionSemantics.ofResource(
+				_pagedResource
+			).name(
+				customRoute.getName()
+			).method(
+				customRoute.getMethod()
+			).provide(
+				Pagination.class, aClass, bClass, cClass, dClass
+			).returns(
+				SingleModel.class
+			).receivesSingle(
+				form
+			).execute(
+				params -> throwableHexaFunction.andThen(
+					t -> new SingleModelImpl<>(t, _getResourceName(supplier))
+				).apply(
+					(Pagination)params.get(0),
+					_getModel(form, () -> (Body)params.get(5)),
+					unsafeCast(params.get(1)), unsafeCast(params.get(2)),
+					unsafeCast(params.get(3)), unsafeCast(params.get(4))
+				)
+			);
 
-			_calculateForm(customRoute, formBuilderFunction, name);
-
-			_customRoutes.put(name, customRoute);
-			_customPermissionFunctions.put(name, permissionFunction);
-
-			CustomPageFunction<U> requestFunction =
-				httpServletRequest -> body -> provide(
-					_provideFunction.apply(httpServletRequest),
-					Pagination.class, aClass, bClass, cClass, dClass,
-					(pagination, a, b, c, d) -> throwableHexaFunction.andThen(
-						model -> new SingleModelImpl(
-							model, _getResourceName(supplier))
-					).apply(
-						pagination, _getModel(customRoute, body), a, b, c, d
-					));
-
-			_customRouteFunctions.put(name, requestFunction);
+			_actionSemantics.add(createActionSemantics);
 
 			return this;
 		}
@@ -504,29 +625,34 @@ public class CollectionRoutesImpl<T, S> implements CollectionRoutes<T, S> {
 				Function<Credentials, Boolean> permissionFunction,
 				FormBuilderFunction<R> formBuilderFunction) {
 
-			_neededProviderConsumer.accept(aClass.getName());
-			_neededProviderConsumer.accept(bClass.getName());
-			_neededProviderConsumer.accept(cClass.getName());
+			Form<R> form = _getForm(
+				formBuilderFunction,
+				asList("p", _pagedResource.getName(), customRoute.getName()));
 
-			String name = customRoute.getName();
+			ActionSemantics createActionSemantics = ActionSemantics.ofResource(
+				_pagedResource
+			).name(
+				customRoute.getName()
+			).method(
+				customRoute.getMethod()
+			).provide(
+				Pagination.class, aClass, bClass, cClass
+			).returns(
+				SingleModel.class
+			).receivesSingle(
+				form
+			).execute(
+				params -> throwablePentaFunction.andThen(
+					t -> new SingleModelImpl<>(t, _getResourceName(supplier))
+				).apply(
+					(Pagination)params.get(0),
+					_getModel(form, () -> (Body)params.get(4)),
+					unsafeCast(params.get(1)), unsafeCast(params.get(2)),
+					unsafeCast(params.get(3))
+				)
+			);
 
-			_calculateForm(customRoute, formBuilderFunction, name);
-
-			_customRoutes.put(name, customRoute);
-			_customPermissionFunctions.put(name, permissionFunction);
-
-			CustomPageFunction<U> requestFunction =
-				httpServletRequest -> body -> provide(
-					_provideFunction.apply(httpServletRequest),
-					Pagination.class, aClass, bClass, cClass,
-					(pagination, a, b, c) -> throwablePentaFunction.andThen(
-						model -> new SingleModelImpl(
-							model, _getResourceName(supplier))
-					).apply(
-						pagination, _getModel(customRoute, body), a, b, c
-					));
-
-			_customRouteFunctions.put(name, requestFunction);
+			_actionSemantics.add(createActionSemantics);
 
 			return this;
 		}
@@ -541,28 +667,33 @@ public class CollectionRoutesImpl<T, S> implements CollectionRoutes<T, S> {
 				Function<Credentials, Boolean> permissionFunction,
 				FormBuilderFunction<R> formBuilderFunction) {
 
-			_neededProviderConsumer.accept(aClass.getName());
-			_neededProviderConsumer.accept(bClass.getName());
+			Form<R> form = _getForm(
+				formBuilderFunction,
+				asList("p", _pagedResource.getName(), customRoute.getName()));
 
-			String name = customRoute.getName();
+			ActionSemantics createActionSemantics = ActionSemantics.ofResource(
+				_pagedResource
+			).name(
+				customRoute.getName()
+			).method(
+				customRoute.getMethod()
+			).provide(
+				Pagination.class, aClass, bClass
+			).returns(
+				SingleModel.class
+			).receivesSingle(
+				form
+			).execute(
+				params -> throwableTetraFunction.andThen(
+					t -> new SingleModelImpl<>(t, _getResourceName(supplier))
+				).apply(
+					(Pagination)params.get(0),
+					_getModel(form, () -> (Body)params.get(3)),
+					unsafeCast(params.get(1)), unsafeCast(params.get(2))
+				)
+			);
 
-			_calculateForm(customRoute, formBuilderFunction, name);
-
-			_customRoutes.put(name, customRoute);
-			_customPermissionFunctions.put(name, permissionFunction);
-
-			CustomPageFunction<R> requestFunction =
-				httpServletRequest -> body -> provide(
-					_provideFunction.apply(httpServletRequest),
-					Pagination.class, aClass, bClass,
-					(pagination, a, b) -> throwableTetraFunction.andThen(
-						model -> new SingleModelImpl(
-							model, _getResourceName(supplier))
-					).apply(
-						pagination, _getModel(customRoute, body), a, b
-					));
-
-			_customRouteFunctions.put(name, requestFunction);
+			_actionSemantics.add(createActionSemantics);
 
 			return this;
 		}
@@ -576,27 +707,33 @@ public class CollectionRoutesImpl<T, S> implements CollectionRoutes<T, S> {
 				Function<Credentials, Boolean> permissionFunction,
 				FormBuilderFunction<R> formBuilderFunction) {
 
-			_neededProviderConsumer.accept(aClass.getName());
+			Form<R> form = _getForm(
+				formBuilderFunction,
+				asList("p", _pagedResource.getName(), customRoute.getName()));
 
-			String name = customRoute.getName();
+			ActionSemantics createActionSemantics = ActionSemantics.ofResource(
+				_pagedResource
+			).name(
+				customRoute.getName()
+			).method(
+				customRoute.getMethod()
+			).provide(
+				Pagination.class, aClass
+			).returns(
+				SingleModel.class
+			).receivesSingle(
+				form
+			).execute(
+				params -> throwableTriFunction.andThen(
+					t -> new SingleModelImpl<>(t, _getResourceName(supplier))
+				).apply(
+					(Pagination)params.get(0),
+					_getModel(form, () -> (Body)params.get(2)),
+					unsafeCast(params.get(1))
+				)
+			);
 
-			_calculateForm(customRoute, formBuilderFunction, name);
-
-			_customRoutes.put(name, customRoute);
-			_customPermissionFunctions.put(name, permissionFunction);
-
-			CustomPageFunction<U> requestFunction =
-				httpServletRequest -> body -> provide(
-					_provideFunction.apply(httpServletRequest),
-					Pagination.class, aClass,
-					(pagination, a) -> throwableTriFunction.andThen(
-						model -> new SingleModelImpl(
-							model, _getResourceName(supplier))
-					).apply(
-						pagination, _getModel(customRoute, body), a
-					));
-
-			_customRouteFunctions.put(name, requestFunction);
+			_actionSemantics.add(createActionSemantics);
 
 			return this;
 		}
@@ -607,15 +744,28 @@ public class CollectionRoutesImpl<T, S> implements CollectionRoutes<T, S> {
 				getterThrowableBiFunction,
 			Class<A> aClass) {
 
-			_neededProviderConsumer.accept(aClass.getName());
+			ActionSemantics actionSemantics = ActionSemantics.ofResource(
+				_pagedResource
+			).name(
+				"retrieve"
+			).method(
+				"GET"
+			).provide(
+				Pagination.class, aClass
+			).returns(
+				Page.class
+			).receivesNothing(
+			).execute(
+				params -> getterThrowableBiFunction.andThen(
+					pageItems -> new PageImpl<>(
+						_pagedResource.getName(), pageItems,
+						(Pagination)params.get(0), emptyList())
+				).apply(
+					(Pagination)params.get(0), unsafeCast(params.get(1))
+				)
+			);
 
-			ActionKey actionKey = new ActionKey(GET.name(), _name);
-
-			_actionManager.add(
-				actionKey,
-				(id, body, list) -> getterThrowableBiFunction.apply(
-					(Pagination)list.get(0), (A)list.get(1)),
-				Pagination.class, aClass);
+			_actionSemantics.add(actionSemantics);
 
 			return this;
 		}
@@ -625,13 +775,28 @@ public class CollectionRoutesImpl<T, S> implements CollectionRoutes<T, S> {
 			ThrowableFunction<Pagination, PageItems<T>>
 				getterThrowableFunction) {
 
-			ActionKey actionKey = new ActionKey(GET.name(), _name);
+			ActionSemantics actionSemantics = ActionSemantics.ofResource(
+				_pagedResource
+			).name(
+				"retrieve"
+			).method(
+				"GET"
+			).provide(
+				Pagination.class
+			).returns(
+				Page.class
+			).receivesNothing(
+			).execute(
+				params -> getterThrowableFunction.andThen(
+					pageItems -> new PageImpl<>(
+						_pagedResource.getName(), pageItems,
+						(Pagination)params.get(0), emptyList())
+				).apply(
+					(Pagination)params.get(0)
+				)
+			);
 
-			_actionManager.add(
-				actionKey,
-				(id, body, list) -> getterThrowableFunction.apply(
-					(Pagination)list.get(0)),
-				Pagination.class);
+			_actionSemantics.add(actionSemantics);
 
 			return this;
 		}
@@ -643,19 +808,30 @@ public class CollectionRoutesImpl<T, S> implements CollectionRoutes<T, S> {
 			Class<A> aClass, Class<B> bClass, Class<C> cClass,
 			Class<D> dClass) {
 
-			_neededProviderConsumer.accept(aClass.getName());
-			_neededProviderConsumer.accept(bClass.getName());
-			_neededProviderConsumer.accept(cClass.getName());
-			_neededProviderConsumer.accept(dClass.getName());
+			ActionSemantics actionSemantics = ActionSemantics.ofResource(
+				_pagedResource
+			).name(
+				"retrieve"
+			).method(
+				"GET"
+			).provide(
+				Pagination.class, aClass, bClass, cClass, dClass
+			).returns(
+				Page.class
+			).receivesNothing(
+			).execute(
+				params -> getterThrowablePentaFunction.andThen(
+					pageItems -> new PageImpl<>(
+						_pagedResource.getName(), pageItems,
+						(Pagination)params.get(0), emptyList())
+				).apply(
+					(Pagination)params.get(0), unsafeCast(params.get(1)),
+					unsafeCast(params.get(2)), unsafeCast(params.get(3)),
+					unsafeCast(params.get(4))
+				)
+			);
 
-			ActionKey actionKey = new ActionKey(GET.name(), _name);
-
-			_actionManager.add(
-				actionKey,
-				(id, body, list) -> getterThrowablePentaFunction.apply(
-					(Pagination)list.get(0), (A)list.get(1), (B)list.get(2),
-					(C)list.get(3), (D)list.get(4)),
-				Pagination.class, aClass, bClass, cClass, dClass);
+			_actionSemantics.add(actionSemantics);
 
 			return this;
 		}
@@ -666,18 +842,29 @@ public class CollectionRoutesImpl<T, S> implements CollectionRoutes<T, S> {
 				getterThrowableTetraFunction,
 			Class<A> aClass, Class<B> bClass, Class<C> cClass) {
 
-			_neededProviderConsumer.accept(aClass.getName());
-			_neededProviderConsumer.accept(bClass.getName());
-			_neededProviderConsumer.accept(cClass.getName());
+			ActionSemantics actionSemantics = ActionSemantics.ofResource(
+				_pagedResource
+			).name(
+				"retrieve"
+			).method(
+				"GET"
+			).provide(
+				Pagination.class, aClass, bClass, cClass
+			).returns(
+				Page.class
+			).receivesNothing(
+			).execute(
+				params -> getterThrowableTetraFunction.andThen(
+					pageItems -> new PageImpl<>(
+						_pagedResource.getName(), pageItems,
+						(Pagination)params.get(0), emptyList())
+				).apply(
+					(Pagination)params.get(0), unsafeCast(params.get(1)),
+					unsafeCast(params.get(2)), unsafeCast(params.get(3))
+				)
+			);
 
-			ActionKey actionKey = new ActionKey(GET.name(), _name);
-
-			_actionManager.add(
-				actionKey,
-				(id, body, list) -> getterThrowableTetraFunction.apply(
-					(Pagination)list.get(0), (A)list.get(1), (B)list.get(2),
-					(C)list.get(3)),
-				Pagination.class, aClass, bClass, cClass);
+			_actionSemantics.add(actionSemantics);
 
 			return this;
 		}
@@ -688,16 +875,29 @@ public class CollectionRoutesImpl<T, S> implements CollectionRoutes<T, S> {
 				getterThrowableTriFunction,
 			Class<A> aClass, Class<B> bClass) {
 
-			_neededProviderConsumer.accept(aClass.getName());
-			_neededProviderConsumer.accept(bClass.getName());
+			ActionSemantics actionSemantics = ActionSemantics.ofResource(
+				_pagedResource
+			).name(
+				"retrieve"
+			).method(
+				"GET"
+			).provide(
+				Pagination.class, aClass, bClass
+			).returns(
+				Page.class
+			).receivesNothing(
+			).execute(
+				params -> getterThrowableTriFunction.andThen(
+					pageItems -> new PageImpl<>(
+						_pagedResource.getName(), pageItems,
+						(Pagination)params.get(0), emptyList())
+				).apply(
+					(Pagination)params.get(0), unsafeCast(params.get(1)),
+					unsafeCast(params.get(2))
+				)
+			);
 
-			ActionKey actionKey = new ActionKey(GET.name(), _name);
-
-			_actionManager.add(
-				actionKey,
-				(id, body, list) -> getterThrowableTriFunction.apply(
-					(Pagination)list.get(0), (A)list.get(1), (B)list.get(2)),
-				Pagination.class, aClass, bClass);
+			_actionSemantics.add(actionSemantics);
 
 			return this;
 		}
@@ -707,28 +907,24 @@ public class CollectionRoutesImpl<T, S> implements CollectionRoutes<T, S> {
 			return new CollectionRoutesImpl<>(this);
 		}
 
-		private <R> void _calculateForm(
-			CustomRoute customRoute, FormBuilderFunction<R> formBuilderFunction,
-			String name) {
+		private <R> Form<R> _getForm(
+			FormBuilderFunction<R> formBuilderFunction, List<String> paths) {
 
 			if (formBuilderFunction != null) {
-				Form<R> form = formBuilderFunction.apply(
+				return formBuilderFunction.apply(
 					new FormImpl.BuilderImpl<>(
-						Arrays.asList("p", _name, name),
-						_pathToIdentifierFunction, _nameFunction));
-
-				customRoute.setForm(form);
+						paths, _pathToIdentifierFunction, _nameFunction));
 			}
+
+			return null;
 		}
 
-		private <R> R _getModel(CustomRoute customRoute, Body body) {
-			Optional<Form<?>> formOptional = customRoute.getFormOptional();
+		private <R> R _getModel(Form<R> form, Supplier<Body> body) {
+			if (form != null) {
+				return form.get(body.get());
+			}
 
-			return (R)formOptional.map(
-				form -> form.get(body)
-			).orElse(
-				null
-			);
+			return null;
 		}
 
 		private <I extends Identifier> String _getResourceName(
@@ -761,29 +957,15 @@ public class CollectionRoutesImpl<T, S> implements CollectionRoutes<T, S> {
 			return newList;
 		}
 
-		private final ActionManager _actionManager;
-		private BatchCreateItemFunction<S> _batchCreateItemFunction;
-		private CreateItemFunction<T> _createItemFunction;
-		private final Map<String, Function<Credentials, Boolean>>
-			_customPermissionFunctions = new HashMap<>();
-		private Map<String, CustomPageFunction<?>> _customRouteFunctions =
-			new HashMap<>();
-		private final Map<String, CustomRoute> _customRoutes = new HashMap<>();
-		private Form _form;
-		private HasAddingPermissionFunction _hasAddingPermissionFunction;
+		private final List<ActionSemantics> _actionSemantics =
+			new ArrayList<>();
 		private final Function<T, S> _modelToIdentifierFunction;
-		private final String _name;
 		private final Function<String, Optional<String>> _nameFunction;
-		private final Consumer<String> _neededProviderConsumer;
+		private final Resource.Paged _pagedResource;
 		private final IdentifierFunction<?> _pathToIdentifierFunction;
-		private final ProvideFunction _provideFunction;
 
 	}
 
-	private final BatchCreateItemFunction<S> _batchCreateItemFunction;
-	private final CreateItemFunction<T> _createItemFunction;
-	private final Map<String, CustomPageFunction<?>> _customPageFunctions;
-	private final Map<String, CustomRoute> _customRoutes;
-	private final Form _form;
+	private final List<ActionSemantics> _actionSemantics;
 
 }

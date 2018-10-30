@@ -15,7 +15,6 @@
 package com.liferay.apio.architect.internal.routes;
 
 import static com.liferay.apio.architect.internal.routes.RoutesTestUtil.FORM_BUILDER_FUNCTION;
-import static com.liferay.apio.architect.internal.routes.RoutesTestUtil.REQUEST_PROVIDE_FUNCTION;
 
 import static com.spotify.hamcrest.optional.OptionalMatchers.emptyOptional;
 
@@ -54,8 +53,7 @@ public class CollectionCustomRoutesImplTest {
 		_neededProviders = new TreeSet<>();
 
 		_builder = new BuilderImpl<>(
-			"name", REQUEST_PROVIDE_FUNCTION, _neededProviders::add,
-			__ -> null, __ -> null, __ -> Optional.of("name"), null);
+			"name", __ -> null, __ -> null, __ -> Optional.of("name"), null);
 	}
 
 	@Test

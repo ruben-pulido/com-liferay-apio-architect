@@ -18,8 +18,6 @@ import static com.liferay.apio.architect.internal.annotation.ActionKey.ANY_ROUTE
 import static com.liferay.apio.architect.internal.routes.RoutesTestUtil.FORM_BUILDER_FUNCTION;
 import static com.liferay.apio.architect.internal.routes.RoutesTestUtil.HAS_REMOVE_PERMISSION_FUNCTION;
 import static com.liferay.apio.architect.internal.routes.RoutesTestUtil.HAS_UPDATE_PERMISSION_FUNCTION;
-import static com.liferay.apio.architect.internal.routes.RoutesTestUtil.IDENTIFIER_TO_PATH_FUNCTION;
-import static com.liferay.apio.architect.internal.routes.RoutesTestUtil.REQUEST_PROVIDE_FUNCTION;
 import static com.liferay.apio.architect.internal.routes.RoutesTestUtil.keyValueFrom;
 import static com.liferay.apio.architect.operation.HTTPMethod.DELETE;
 import static com.liferay.apio.architect.operation.HTTPMethod.GET;
@@ -69,11 +67,7 @@ public class ItemRoutesImplTest extends BaseRoutesTest {
 	@Test(expected = NotFoundException.class)
 	public void testEmptyBuilderBuildsEmptyRoutes() {
 		Builder<String, Long> builder = new BuilderImpl<>(
-			"name", REQUEST_PROVIDE_FUNCTION,
-			__ -> {
-			},
-			__ -> null, IDENTIFIER_TO_PATH_FUNCTION,
-			__ -> Optional.empty(), actionManager);
+			"name", __ -> null, __ -> Optional.empty());
 
 		ItemRoutes<String, Long> itemRoutes = builder.build();
 
@@ -94,11 +88,7 @@ public class ItemRoutesImplTest extends BaseRoutesTest {
 	@Test(expected = NotFoundException.class)
 	public void testEmptyBuilderBuildsEmptyRoutes1() {
 		Builder<String, Long> builder = new BuilderImpl<>(
-			"name", REQUEST_PROVIDE_FUNCTION,
-			__ -> {
-			},
-			__ -> null, IDENTIFIER_TO_PATH_FUNCTION,
-			__ -> Optional.empty(), actionManager);
+			"name", __ -> null, __ -> Optional.empty());
 
 		ItemRoutes<String, Long> itemRoutes = builder.build();
 
@@ -121,8 +111,7 @@ public class ItemRoutesImplTest extends BaseRoutesTest {
 		Set<String> neededProviders = new TreeSet<>();
 
 		Builder<String, Long> builder = new BuilderImpl<>(
-			"name", REQUEST_PROVIDE_FUNCTION, neededProviders::add, __ -> null,
-			IDENTIFIER_TO_PATH_FUNCTION, __ -> Optional.empty(), actionManager);
+			"name", __ -> null, __ -> Optional.empty());
 
 		ItemRoutes<String, Long> itemRoutes = builder.addGetter(
 			this::_testAndReturnFourParameterGetterRoute, String.class,
@@ -150,8 +139,7 @@ public class ItemRoutesImplTest extends BaseRoutesTest {
 		Set<String> neededProviders = new TreeSet<>();
 
 		Builder<String, Long> builder = new BuilderImpl<>(
-			"name", REQUEST_PROVIDE_FUNCTION, neededProviders::add, __ -> null,
-			IDENTIFIER_TO_PATH_FUNCTION, __ -> Optional.empty(), actionManager);
+			"name", __ -> null, __ -> Optional.empty());
 
 		ItemRoutes<String, Long> itemRoutes = builder.addGetter(
 			this::_testAndReturnThreeParameterGetterRoute, String.class,
@@ -179,8 +167,7 @@ public class ItemRoutesImplTest extends BaseRoutesTest {
 		Set<String> neededProviders = new TreeSet<>();
 
 		Builder<String, Long> builder = new BuilderImpl<>(
-			"name", REQUEST_PROVIDE_FUNCTION, neededProviders::add, __ -> null,
-			IDENTIFIER_TO_PATH_FUNCTION, __ -> Optional.empty(), actionManager);
+			"name", __ -> null, __ -> Optional.empty());
 
 		ItemRoutes<String, Long> itemRoutes = builder.addGetter(
 			this::_testAndReturnNoParameterGetterRoute
@@ -202,8 +189,7 @@ public class ItemRoutesImplTest extends BaseRoutesTest {
 		Set<String> neededProviders = new TreeSet<>();
 
 		Builder<String, Long> builder = new BuilderImpl<>(
-			"name", REQUEST_PROVIDE_FUNCTION, neededProviders::add, __ -> null,
-			IDENTIFIER_TO_PATH_FUNCTION, __ -> Optional.empty(), actionManager);
+			"name", __ -> null, __ -> Optional.empty());
 
 		ItemRoutes<String, Long> itemRoutes = builder.addGetter(
 			this::_testAndReturnTwoParameterGetterRoute, String.class,
@@ -228,8 +214,7 @@ public class ItemRoutesImplTest extends BaseRoutesTest {
 		Set<String> neededProviders = new TreeSet<>();
 
 		Builder<String, Long> builder = new BuilderImpl<>(
-			"name", REQUEST_PROVIDE_FUNCTION, neededProviders::add, __ -> null,
-			IDENTIFIER_TO_PATH_FUNCTION, __ -> Optional.empty(), actionManager);
+			"name", __ -> null, __ -> Optional.empty());
 
 		ItemRoutes<String, Long> itemRoutes = builder.addGetter(
 			this::_testAndReturnOneParameterGetterRoute, String.class

@@ -19,7 +19,6 @@ import static com.liferay.apio.architect.internal.routes.RoutesTestUtil.FORM_BUI
 import static com.liferay.apio.architect.internal.routes.RoutesTestUtil.HAS_ADDING_PERMISSION_FUNCTION;
 import static com.liferay.apio.architect.internal.routes.RoutesTestUtil.IDENTIFIER_FUNCTION;
 import static com.liferay.apio.architect.internal.routes.RoutesTestUtil.PAGINATION;
-import static com.liferay.apio.architect.internal.routes.RoutesTestUtil.REQUEST_PROVIDE_FUNCTION;
 import static com.liferay.apio.architect.internal.routes.RoutesTestUtil.keyValueFrom;
 import static com.liferay.apio.architect.internal.unsafe.Unsafe.unsafeCast;
 import static com.liferay.apio.architect.operation.HTTPMethod.GET;
@@ -74,10 +73,7 @@ public class CollectionRoutesImplTest extends BaseRoutesTest {
 	@Test(expected = NotFoundException.class)
 	public void testEmptyBuilderBuildsEmptyRoutes() {
 		Builder<String, Long> builder = new BuilderImpl<>(
-			"name", REQUEST_PROVIDE_FUNCTION,
-			__ -> {
-			},
-			__ -> null, IDENTIFIER_FUNCTION, __ -> null, actionManager);
+			"name", __ -> null, IDENTIFIER_FUNCTION, __ -> null, actionManager);
 
 		CollectionRoutes<String, Long> collectionRoutes = builder.build();
 
@@ -103,8 +99,7 @@ public class CollectionRoutesImplTest extends BaseRoutesTest {
 		Set<String> neededProviders = new TreeSet<>();
 
 		Builder<String, Long> builder = new BuilderImpl<>(
-			"name", REQUEST_PROVIDE_FUNCTION, neededProviders::add,
-			__ -> null, IDENTIFIER_FUNCTION, __ -> null, actionManager);
+			"name", __ -> null, IDENTIFIER_FUNCTION, __ -> null, actionManager);
 
 		CollectionRoutes<String, Long> collectionRoutes = builder.addCreator(
 			this::_testAndReturnFourParameterCreatorRoute,
@@ -128,8 +123,7 @@ public class CollectionRoutesImplTest extends BaseRoutesTest {
 		Set<String> neededProviders = new TreeSet<>();
 
 		Builder<String, Long> builder = new BuilderImpl<>(
-			"name", REQUEST_PROVIDE_FUNCTION, neededProviders::add,
-			__ -> null, IDENTIFIER_FUNCTION, __ -> null, actionManager);
+			"name", __ -> null, IDENTIFIER_FUNCTION, __ -> null, actionManager);
 
 		CollectionRoutes<String, Long> collectionRoutes = builder.addCreator(
 			this::_testAndReturnFourParameterCreatorRoute, String.class,
@@ -154,8 +148,7 @@ public class CollectionRoutesImplTest extends BaseRoutesTest {
 		Set<String> neededProviders = new TreeSet<>();
 
 		Builder<String, Long> builder = new BuilderImpl<>(
-			"name", REQUEST_PROVIDE_FUNCTION, neededProviders::add,
-			__ -> null, IDENTIFIER_FUNCTION, __ -> null, actionManager);
+			"name", __ -> null, IDENTIFIER_FUNCTION, __ -> null, actionManager);
 
 		CollectionRoutes<String, Long> collectionRoutes = builder.addCreator(
 			this::_testAndReturnThreeParameterCreatorRoute,
@@ -179,8 +172,7 @@ public class CollectionRoutesImplTest extends BaseRoutesTest {
 		Set<String> neededProviders = new TreeSet<>();
 
 		Builder<String, Long> builder = new BuilderImpl<>(
-			"name", REQUEST_PROVIDE_FUNCTION, neededProviders::add,
-			__ -> null, IDENTIFIER_FUNCTION, __ -> null, actionManager);
+			"name", __ -> null, IDENTIFIER_FUNCTION, __ -> null, actionManager);
 
 		CollectionRoutes<String, Long> collectionRoutes = builder.addCreator(
 			this::_testAndReturnThreeParameterCreatorRoute, String.class,
@@ -205,8 +197,7 @@ public class CollectionRoutesImplTest extends BaseRoutesTest {
 		Set<String> neededProviders = new TreeSet<>();
 
 		Builder<String, Long> builder = new BuilderImpl<>(
-			"name", REQUEST_PROVIDE_FUNCTION, neededProviders::add,
-			__ -> null, IDENTIFIER_FUNCTION, __ -> null, actionManager);
+			"name", __ -> null, IDENTIFIER_FUNCTION, __ -> null, actionManager);
 
 		CollectionRoutes<String, Long> collectionRoutes = builder.addCreator(
 			this::_testAndReturnNoParameterCreatorRoute,
@@ -225,8 +216,7 @@ public class CollectionRoutesImplTest extends BaseRoutesTest {
 		Set<String> neededProviders = new TreeSet<>();
 
 		Builder<String, Long> builder = new BuilderImpl<>(
-			"name", REQUEST_PROVIDE_FUNCTION, neededProviders::add,
-			__ -> null, IDENTIFIER_FUNCTION, __ -> null, actionManager);
+			"name", __ -> null, IDENTIFIER_FUNCTION, __ -> null, actionManager);
 
 		CollectionRoutes<String, Long> collectionRoutes = builder.addCreator(
 			this::_testAndReturnNoParameterCreatorRoute,
@@ -245,8 +235,7 @@ public class CollectionRoutesImplTest extends BaseRoutesTest {
 		Set<String> neededProviders = new TreeSet<>();
 
 		Builder<String, Long> builder = new BuilderImpl<>(
-			"name", REQUEST_PROVIDE_FUNCTION, neededProviders::add, __ -> null,
-			__ -> null, __ -> null, actionManager);
+			"name", __ -> null, __ -> null, __ -> null, actionManager);
 
 		CollectionRoutes<String, Long> collectionRoutes = builder.addCreator(
 			this::_testAndReturnTwoParameterCreatorRoute,
@@ -267,8 +256,7 @@ public class CollectionRoutesImplTest extends BaseRoutesTest {
 		Set<String> neededProviders = new TreeSet<>();
 
 		Builder<String, Long> builder = new BuilderImpl<>(
-			"name", REQUEST_PROVIDE_FUNCTION, neededProviders::add, __ -> null,
-			IDENTIFIER_FUNCTION, __ -> null, actionManager);
+			"name", __ -> null, IDENTIFIER_FUNCTION, __ -> null, actionManager);
 
 		CollectionRoutes<String, Long> collectionRoutes = builder.addCreator(
 			this::_testAndReturnTwoParameterCreatorRoute, String.class,
@@ -290,8 +278,7 @@ public class CollectionRoutesImplTest extends BaseRoutesTest {
 		Set<String> neededProviders = new TreeSet<>();
 
 		Builder<String, Long> builder = new BuilderImpl<>(
-			"name", REQUEST_PROVIDE_FUNCTION, neededProviders::add, __ -> null,
-			__ -> null, __ -> null, actionManager);
+			"name", __ -> null, __ -> null, __ -> null, actionManager);
 
 		CollectionRoutes<String, Long> collectionRoutes = builder.addCreator(
 			this::_testAndReturnOneParameterCreatorRoute,
@@ -310,8 +297,7 @@ public class CollectionRoutesImplTest extends BaseRoutesTest {
 		Set<String> neededProviders = new TreeSet<>();
 
 		Builder<String, Long> builder = new BuilderImpl<>(
-			"name", REQUEST_PROVIDE_FUNCTION, neededProviders::add, __ -> null,
-			IDENTIFIER_FUNCTION, __ -> null, actionManager);
+			"name", __ -> null, IDENTIFIER_FUNCTION, __ -> null, actionManager);
 
 		CollectionRoutes<String, Long> collectionRoutes = builder.addCreator(
 			this::_testAndReturnOneParameterCreatorRoute, String.class,

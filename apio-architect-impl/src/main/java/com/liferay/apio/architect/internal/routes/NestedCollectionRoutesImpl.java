@@ -14,9 +14,10 @@
 
 package com.liferay.apio.architect.internal.routes;
 
-import static com.liferay.apio.architect.internal.annotation.ActionKey.ANY_ROUTE;
-import static com.liferay.apio.architect.internal.routes.RoutesBuilderUtil.provide;
-import static com.liferay.apio.architect.operation.HTTPMethod.GET;
+import static com.liferay.apio.architect.internal.unsafe.Unsafe.unsafeCast;
+
+import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
 
 import com.liferay.apio.architect.alias.IdentifierFunction;
 import com.liferay.apio.architect.alias.form.FormBuilderFunction;
@@ -25,7 +26,7 @@ import com.liferay.apio.architect.alias.routes.NestedCreateItemFunction;
 import com.liferay.apio.architect.alias.routes.NestedGetPageFunction;
 import com.liferay.apio.architect.alias.routes.permission.HasNestedAddingPermissionFunction;
 import com.liferay.apio.architect.batch.BatchResult;
-import com.liferay.apio.architect.credentials.Credentials;
+import com.liferay.apio.architect.form.Body;
 import com.liferay.apio.architect.form.Form;
 import com.liferay.apio.architect.function.throwable.ThrowableBiFunction;
 import com.liferay.apio.architect.function.throwable.ThrowableFunction;
@@ -33,23 +34,21 @@ import com.liferay.apio.architect.function.throwable.ThrowableHexaFunction;
 import com.liferay.apio.architect.function.throwable.ThrowablePentaFunction;
 import com.liferay.apio.architect.function.throwable.ThrowableTetraFunction;
 import com.liferay.apio.architect.function.throwable.ThrowableTriFunction;
-import com.liferay.apio.architect.functional.Try;
-import com.liferay.apio.architect.internal.alias.ProvideFunction;
-import com.liferay.apio.architect.internal.annotation.ActionKey;
-import com.liferay.apio.architect.internal.annotation.ActionManager;
 import com.liferay.apio.architect.internal.form.FormImpl;
+import com.liferay.apio.architect.internal.pagination.PageImpl;
 import com.liferay.apio.architect.internal.single.model.SingleModelImpl;
+import com.liferay.apio.architect.internal.wiring.osgi.manager.router.ActionSemantics;
+import com.liferay.apio.architect.internal.wiring.osgi.manager.router.Resource;
+import com.liferay.apio.architect.pagination.Page;
 import com.liferay.apio.architect.pagination.PageItems;
 import com.liferay.apio.architect.pagination.Pagination;
 import com.liferay.apio.architect.routes.NestedCollectionRoutes;
+import com.liferay.apio.architect.single.model.SingleModel;
 import com.liferay.apio.architect.uri.Path;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
@@ -59,57 +58,52 @@ public class NestedCollectionRoutesImpl<T, S, U>
 	implements NestedCollectionRoutes<T, S, U> {
 
 	public NestedCollectionRoutesImpl(BuilderImpl<T, S, U> builderImpl) {
-		_form = builderImpl._form;
-		_nestedCreateItemFunction = builderImpl._nestedCreateItemFunction;
-		_nestedBatchCreateItemFunction =
-			builderImpl._nestedBatchCreateItemFunction;
+		_actionSemantics = builderImpl._actionSemantics;
+	}
+
+	public List<ActionSemantics> getActionSemantics() {
+		return _actionSemantics;
 	}
 
 	@Override
 	public Optional<Form> getFormOptional() {
-		return Optional.ofNullable(_form);
+		return Optional.empty();
 	}
 
 	@Override
 	public Optional<NestedBatchCreateItemFunction<S, U>>
 		getNestedBatchCreateItemFunctionOptional() {
 
-		return Optional.ofNullable(_nestedBatchCreateItemFunction);
+		return Optional.empty();
 	}
 
 	@Override
 	public Optional<NestedCreateItemFunction<T, U>>
 		getNestedCreateItemFunctionOptional() {
 
-		return Optional.ofNullable(_nestedCreateItemFunction);
+		return Optional.empty();
 	}
 
 	@Override
 	public Optional<NestedGetPageFunction<T, U>>
 		getNestedGetPageFunctionOptional() {
 
-		throw new UnsupportedOperationException();
+		return Optional.empty();
 	}
 
 	public static class BuilderImpl<T, S, U> implements Builder<T, S, U> {
 
 		public BuilderImpl(
-			String name, String nestedName, ProvideFunction provideFunction,
-			Consumer<String> neededProviderConsumer,
+			Resource.Nested nestedResource,
 			Function<Path, ?> pathToIdentifierFunction,
 			Function<T, S> modelToIdentifierFunction,
-			ActionManager actionManager,
 			Function<String, Optional<String>> nameFunction) {
 
-			_name = name;
-			_nestedName = nestedName;
-			_provideFunction = provideFunction;
-			_neededProviderConsumer = neededProviderConsumer;
+			_nestedResource = nestedResource;
 
 			_pathToIdentifierFunction = pathToIdentifierFunction::apply;
 
 			_modelToIdentifierFunction = modelToIdentifierFunction;
-			_actionManager = actionManager;
 			_nameFunction = nameFunction;
 		}
 
@@ -139,32 +133,57 @@ public class NestedCollectionRoutesImpl<T, S, U>
 				hasNestedAddingPermissionFunction,
 			FormBuilderFunction<R> formBuilderFunction) {
 
-			_hasNestedAddingPermissionFunction =
-				hasNestedAddingPermissionFunction;
+			String parentName = _nestedResource.getParentName();
+			String nestedName = _nestedResource.getName();
 
 			Form<R> form = formBuilderFunction.apply(
 				new FormImpl.BuilderImpl<>(
-					Arrays.asList("c", _name, _nestedName),
+					asList("c", parentName, nestedName),
 					_pathToIdentifierFunction, _nameFunction));
 
-			_form = form;
-
-			_nestedCreateItemFunction =
-				httpServletRequest -> identifier -> body -> Try.fromFallible(
-					() -> creatorThrowableBiFunction.andThen(
-						t -> new SingleModelImpl<>(
-							t, _nestedName, Collections.emptyList())
+			ActionSemantics batchCreateActionSemantics =
+				ActionSemantics.ofResource(
+					_nestedResource
+				).name(
+					"batch-create"
+				).method(
+					"POST"
+				).provideNothing(
+				).returns(
+					BatchResult.class
+				).receivesListOf(
+					form
+				).execute(
+					params -> batchCreatorThrowableBiFunction.andThen(
+						t -> new BatchResult<>(t, nestedName)
 					).apply(
-						identifier, form.get(body)
-					));
+						unsafeCast(params.get(1)),
+						form.getList((Body)params.get(0))
+					)
+				);
 
-			_nestedBatchCreateItemFunction =
-				httpServletRequest -> body -> identifier -> Try.fromFallible(
-					() -> batchCreatorThrowableBiFunction.andThen(
-						t -> new BatchResult<>(t, _nestedName)
-					).apply(
-						identifier, form.getList(body)
-					));
+			_actionSemantics.add(batchCreateActionSemantics);
+
+			ActionSemantics createActionSemantics = ActionSemantics.ofResource(
+				_nestedResource
+			).name(
+				"create"
+			).method(
+				"POST"
+			).provideNothing(
+			).returns(
+				SingleModel.class
+			).receivesSingle(
+				form
+			).execute(
+				params -> creatorThrowableBiFunction.andThen(
+					t -> new SingleModelImpl<>(t, nestedName, emptyList())
+				).apply(
+					unsafeCast(params.get(1)), form.get((Body)params.get(0))
+				)
+			);
+
+			_actionSemantics.add(createActionSemantics);
 
 			return this;
 		}
@@ -202,41 +221,63 @@ public class NestedCollectionRoutesImpl<T, S, U>
 				hasNestedAddingPermissionFunction,
 			FormBuilderFunction<R> formBuilderFunction) {
 
-			_neededProviderConsumer.accept(aClass.getName());
-			_neededProviderConsumer.accept(bClass.getName());
-			_neededProviderConsumer.accept(cClass.getName());
-			_neededProviderConsumer.accept(dClass.getName());
-
-			_hasNestedAddingPermissionFunction =
-				hasNestedAddingPermissionFunction;
+			String parentName = _nestedResource.getParentName();
+			String nestedName = _nestedResource.getName();
 
 			Form<R> form = formBuilderFunction.apply(
 				new FormImpl.BuilderImpl<>(
-					Arrays.asList("c", _name, _nestedName),
+					asList("c", parentName, nestedName),
 					_pathToIdentifierFunction, _nameFunction));
 
-			_form = form;
-
-			_nestedCreateItemFunction =
-				httpServletRequest -> identifier -> body -> provide(
-					_provideFunction.apply(httpServletRequest), aClass, bClass,
-					cClass, dClass,
-					(a, b, c, d) -> creatorThrowableHexaFunction.andThen(
-						t -> new SingleModelImpl<>(
-							t, _nestedName, Collections.emptyList())
+			ActionSemantics batchCreateActionSemantics =
+				ActionSemantics.ofResource(
+					_nestedResource
+				).name(
+					"batch-create"
+				).method(
+					"POST"
+				).provide(
+					aClass, bClass, cClass, dClass
+				).returns(
+					BatchResult.class
+				).receivesListOf(
+					form
+				).execute(
+					params -> batchCreatorThrowableHexaFunction.andThen(
+						t -> new BatchResult<>(t, nestedName)
 					).apply(
-						identifier, form.get(body), a, b, c, d
-					));
+						unsafeCast(params.get(5)),
+						form.getList((Body)params.get(4)),
+						unsafeCast(params.get(0)), unsafeCast(params.get(1)),
+						unsafeCast(params.get(2)), unsafeCast(params.get(3))
+					)
+				);
 
-			_nestedBatchCreateItemFunction =
-				httpServletRequest -> body -> identifier -> provide(
-					_provideFunction.apply(httpServletRequest), aClass, bClass,
-					cClass, dClass,
-					(a, b, c, d) -> batchCreatorThrowableHexaFunction.andThen(
-						t -> new BatchResult<>(t, _nestedName)
-					).apply(
-						identifier, form.getList(body), a, b, c, d
-					));
+			_actionSemantics.add(batchCreateActionSemantics);
+
+			ActionSemantics createActionSemantics = ActionSemantics.ofResource(
+				_nestedResource
+			).name(
+				"create"
+			).method(
+				"POST"
+			).provide(
+				aClass, bClass, cClass, dClass
+			).returns(
+				SingleModel.class
+			).receivesSingle(
+				form
+			).execute(
+				params -> creatorThrowableHexaFunction.andThen(
+					t -> new SingleModelImpl<>(t, nestedName, emptyList())
+				).apply(
+					unsafeCast(params.get(5)), form.get((Body)params.get(4)),
+					unsafeCast(params.get(0)), unsafeCast(params.get(1)),
+					unsafeCast(params.get(2)), unsafeCast(params.get(3))
+				)
+			);
+
+			_actionSemantics.add(createActionSemantics);
 
 			return this;
 		}
@@ -274,40 +315,63 @@ public class NestedCollectionRoutesImpl<T, S, U>
 				hasNestedAddingPermissionFunction,
 			FormBuilderFunction<R> formBuilderFunction) {
 
-			_neededProviderConsumer.accept(aClass.getName());
-			_neededProviderConsumer.accept(bClass.getName());
-			_neededProviderConsumer.accept(cClass.getName());
-
-			_hasNestedAddingPermissionFunction =
-				hasNestedAddingPermissionFunction;
+			String parentName = _nestedResource.getParentName();
+			String nestedName = _nestedResource.getName();
 
 			Form<R> form = formBuilderFunction.apply(
 				new FormImpl.BuilderImpl<>(
-					Arrays.asList("c", _name, _nestedName),
+					asList("c", parentName, nestedName),
 					_pathToIdentifierFunction, _nameFunction));
 
-			_form = form;
-
-			_nestedCreateItemFunction =
-				httpServletRequest -> identifier -> body -> provide(
-					_provideFunction.apply(httpServletRequest), aClass, bClass,
-					cClass,
-					(a, b, c) -> creatorThrowablePentaFunction.andThen(
-						t -> new SingleModelImpl<>(
-							t, _nestedName, Collections.emptyList())
+			ActionSemantics batchCreateActionSemantics =
+				ActionSemantics.ofResource(
+					_nestedResource
+				).name(
+					"batch-create"
+				).method(
+					"POST"
+				).provide(
+					aClass, bClass, cClass
+				).returns(
+					BatchResult.class
+				).receivesListOf(
+					form
+				).execute(
+					params -> batchCreatorThrowablePentaFunction.andThen(
+						t -> new BatchResult<>(t, nestedName)
 					).apply(
-						identifier, form.get(body), a, b, c
-					));
+						unsafeCast(params.get(4)),
+						form.getList((Body)params.get(3)),
+						unsafeCast(params.get(0)), unsafeCast(params.get(1)),
+						unsafeCast(params.get(2))
+					)
+				);
 
-			_nestedBatchCreateItemFunction =
-				httpServletRequest -> body -> identifier -> provide(
-					_provideFunction.apply(httpServletRequest), aClass, bClass,
-					cClass,
-					(a, b, c) -> batchCreatorThrowablePentaFunction.andThen(
-						t -> new BatchResult<>(t, _nestedName)
-					).apply(
-						identifier, form.getList(body), a, b, c
-					));
+			_actionSemantics.add(batchCreateActionSemantics);
+
+			ActionSemantics createActionSemantics = ActionSemantics.ofResource(
+				_nestedResource
+			).name(
+				"create"
+			).method(
+				"POST"
+			).provide(
+				aClass, bClass, cClass
+			).returns(
+				SingleModel.class
+			).receivesSingle(
+				form
+			).execute(
+				params -> creatorThrowablePentaFunction.andThen(
+					t -> new SingleModelImpl<>(t, nestedName, emptyList())
+				).apply(
+					unsafeCast(params.get(4)), form.get((Body)params.get(3)),
+					unsafeCast(params.get(0)), unsafeCast(params.get(1)),
+					unsafeCast(params.get(2))
+				)
+			);
+
+			_actionSemantics.add(createActionSemantics);
 
 			return this;
 		}
@@ -342,37 +406,61 @@ public class NestedCollectionRoutesImpl<T, S, U>
 				hasNestedAddingPermissionFunction,
 			FormBuilderFunction<R> formBuilderFunction) {
 
-			_neededProviderConsumer.accept(aClass.getName());
-			_neededProviderConsumer.accept(bClass.getName());
-
-			_hasNestedAddingPermissionFunction =
-				hasNestedAddingPermissionFunction;
+			String parentName = _nestedResource.getParentName();
+			String nestedName = _nestedResource.getName();
 
 			Form<R> form = formBuilderFunction.apply(
 				new FormImpl.BuilderImpl<>(
-					Arrays.asList("c", _name, _nestedName),
+					asList("c", parentName, nestedName),
 					_pathToIdentifierFunction, _nameFunction));
 
-			_form = form;
-
-			_nestedCreateItemFunction =
-				httpServletRequest -> identifier -> body -> provide(
-					_provideFunction.apply(httpServletRequest), aClass, bClass,
-					(a, b) -> creatorThrowableTetraFunction.andThen(
-						t -> new SingleModelImpl<>(
-							t, _nestedName, Collections.emptyList())
+			ActionSemantics batchCreateActionSemantics =
+				ActionSemantics.ofResource(
+					_nestedResource
+				).name(
+					"batch-create"
+				).method(
+					"POST"
+				).provide(
+					aClass, bClass
+				).returns(
+					BatchResult.class
+				).receivesListOf(
+					form
+				).execute(
+					params -> batchCreatorThrowableTetraFunction.andThen(
+						t -> new BatchResult<>(t, nestedName)
 					).apply(
-						identifier, form.get(body), a, b
-					));
+						unsafeCast(params.get(3)),
+						form.getList((Body)params.get(2)),
+						unsafeCast(params.get(0)), unsafeCast(params.get(1))
+					)
+				);
 
-			_nestedBatchCreateItemFunction =
-				httpServletRequest -> body -> identifier -> provide(
-					_provideFunction.apply(httpServletRequest), aClass, bClass,
-					(a, b) -> batchCreatorThrowableTetraFunction.andThen(
-						t -> new BatchResult<>(t, _nestedName)
-					).apply(
-						identifier, form.getList(body), a, b
-					));
+			_actionSemantics.add(batchCreateActionSemantics);
+
+			ActionSemantics createActionSemantics = ActionSemantics.ofResource(
+				_nestedResource
+			).name(
+				"create"
+			).method(
+				"POST"
+			).provide(
+				aClass, bClass
+			).returns(
+				SingleModel.class
+			).receivesSingle(
+				form
+			).execute(
+				params -> creatorThrowableTetraFunction.andThen(
+					t -> new SingleModelImpl<>(t, nestedName, emptyList())
+				).apply(
+					unsafeCast(params.get(3)), form.get((Body)params.get(2)),
+					unsafeCast(params.get(0)), unsafeCast(params.get(1))
+				)
+			);
+
+			_actionSemantics.add(createActionSemantics);
 
 			return this;
 		}
@@ -406,36 +494,61 @@ public class NestedCollectionRoutesImpl<T, S, U>
 				hasNestedAddingPermissionFunction,
 			FormBuilderFunction<R> formBuilderFunction) {
 
-			_neededProviderConsumer.accept(aClass.getName());
-
-			_hasNestedAddingPermissionFunction =
-				hasNestedAddingPermissionFunction;
+			String parentName = _nestedResource.getParentName();
+			String nestedName = _nestedResource.getName();
 
 			Form<R> form = formBuilderFunction.apply(
 				new FormImpl.BuilderImpl<>(
-					Arrays.asList("c", _name, _nestedName),
+					asList("c", parentName, nestedName),
 					_pathToIdentifierFunction, _nameFunction));
 
-			_form = form;
-
-			_nestedCreateItemFunction =
-				httpServletRequest -> identifier -> body -> provide(
-					_provideFunction.apply(httpServletRequest), aClass,
-					a -> creatorThrowableTriFunction.andThen(
-						t -> new SingleModelImpl<>(
-							t, _nestedName, Collections.emptyList())
+			ActionSemantics batchCreateActionSemantics =
+				ActionSemantics.ofResource(
+					_nestedResource
+				).name(
+					"batch-create"
+				).method(
+					"POST"
+				).provide(
+					aClass
+				).returns(
+					BatchResult.class
+				).receivesListOf(
+					form
+				).execute(
+					params -> batchCreatorThrowableTriFunction.andThen(
+						t -> new BatchResult<>(t, nestedName)
 					).apply(
-						identifier, form.get(body), a
-					));
+						unsafeCast(params.get(2)),
+						form.getList((Body)params.get(1)),
+						unsafeCast(params.get(0))
+					)
+				);
 
-			_nestedBatchCreateItemFunction =
-				httpServletRequest -> body -> identifier -> provide(
-					_provideFunction.apply(httpServletRequest), aClass,
-					a -> batchCreatorThrowableTriFunction.andThen(
-						t -> new BatchResult<>(t, _nestedName)
-					).apply(
-						identifier, form.getList(body), a
-					));
+			_actionSemantics.add(batchCreateActionSemantics);
+
+			ActionSemantics createActionSemantics = ActionSemantics.ofResource(
+				_nestedResource
+			).name(
+				"create"
+			).method(
+				"POST"
+			).provide(
+				aClass
+			).returns(
+				SingleModel.class
+			).receivesSingle(
+				form
+			).execute(
+				params -> creatorThrowableTriFunction.andThen(
+					t -> new SingleModelImpl<>(t, nestedName, emptyList())
+				).apply(
+					unsafeCast(params.get(2)), form.get((Body)params.get(1)),
+					unsafeCast(params.get(0))
+				)
+			);
+
+			_actionSemantics.add(createActionSemantics);
 
 			return this;
 		}
@@ -445,13 +558,28 @@ public class NestedCollectionRoutesImpl<T, S, U>
 			ThrowableBiFunction<Pagination, U, PageItems<T>>
 				getterThrowableBiFunction) {
 
-			ActionKey actionKey = _getActionKeyForNested(_name, _nestedName);
+			ActionSemantics actionSemantics = ActionSemantics.ofResource(
+				_nestedResource
+			).name(
+				"retrieve"
+			).method(
+				"GET"
+			).provide(
+				Pagination.class
+			).returns(
+				Page.class
+			).receivesNothing(
+			).execute(
+				params -> getterThrowableBiFunction.andThen(
+					pageItems -> new PageImpl<>(
+						_nestedResource.getName(), pageItems,
+						(Pagination)params.get(0), emptyList())
+				).apply(
+					(Pagination)params.get(0), unsafeCast(params.get(1))
+				)
+			);
 
-			_actionManager.add(
-				actionKey,
-				(id, body, list) -> getterThrowableBiFunction.apply(
-					(Pagination)list.get(0), (U)id),
-				Pagination.class);
+			_actionSemantics.add(actionSemantics);
 
 			return this;
 		}
@@ -463,19 +591,30 @@ public class NestedCollectionRoutesImpl<T, S, U>
 			Class<A> aClass, Class<B> bClass, Class<C> cClass,
 			Class<D> dClass) {
 
-			_neededProviderConsumer.accept(aClass.getName());
-			_neededProviderConsumer.accept(bClass.getName());
-			_neededProviderConsumer.accept(cClass.getName());
-			_neededProviderConsumer.accept(dClass.getName());
+			ActionSemantics actionSemantics = ActionSemantics.ofResource(
+				_nestedResource
+			).name(
+				"retrieve"
+			).method(
+				"GET"
+			).provide(
+				Pagination.class, aClass, bClass, cClass, dClass
+			).returns(
+				Page.class
+			).receivesNothing(
+			).execute(
+				params -> getterThrowableHexaFunction.andThen(
+					pageItems -> new PageImpl<>(
+						_nestedResource.getName(), pageItems,
+						(Pagination)params.get(0), emptyList())
+				).apply(
+					(Pagination)params.get(0), unsafeCast(params.get(5)),
+					unsafeCast(params.get(1)), unsafeCast(params.get(2)),
+					unsafeCast(params.get(3)), unsafeCast(params.get(4))
+				)
+			);
 
-			ActionKey actionKey = _getActionKeyForNested(_name, _nestedName);
-
-			_actionManager.add(
-				actionKey,
-				(id, body, list) -> getterThrowableHexaFunction.apply(
-					(Pagination)list.get(0), (U)id, (A)list.get(1),
-					(B)list.get(2), (C)list.get(3), (D)list.get(4)),
-				Pagination.class, aClass, bClass, cClass, dClass);
+			_actionSemantics.add(actionSemantics);
 
 			return this;
 		}
@@ -486,18 +625,30 @@ public class NestedCollectionRoutesImpl<T, S, U>
 				getterThrowablePentaFunction,
 			Class<A> aClass, Class<B> bClass, Class<C> cClass) {
 
-			_neededProviderConsumer.accept(aClass.getName());
-			_neededProviderConsumer.accept(bClass.getName());
-			_neededProviderConsumer.accept(cClass.getName());
+			ActionSemantics actionSemantics = ActionSemantics.ofResource(
+				_nestedResource
+			).name(
+				"retrieve"
+			).method(
+				"GET"
+			).provide(
+				Pagination.class, aClass, bClass, cClass
+			).returns(
+				Page.class
+			).receivesNothing(
+			).execute(
+				params -> getterThrowablePentaFunction.andThen(
+					pageItems -> new PageImpl<>(
+						_nestedResource.getName(), pageItems,
+						(Pagination)params.get(0), emptyList())
+				).apply(
+					(Pagination)params.get(0), unsafeCast(params.get(4)),
+					unsafeCast(params.get(1)), unsafeCast(params.get(2)),
+					unsafeCast(params.get(3))
+				)
+			);
 
-			ActionKey actionKey = _getActionKeyForNested(_name, _nestedName);
-
-			_actionManager.add(
-				actionKey,
-				(id, body, list) -> getterThrowablePentaFunction.apply(
-					(Pagination)list.get(0), (U)id, (A)list.get(1),
-					(B)list.get(2), (C)list.get(3)),
-				Pagination.class, aClass, bClass, cClass);
+			_actionSemantics.add(actionSemantics);
 
 			return this;
 		}
@@ -508,17 +659,29 @@ public class NestedCollectionRoutesImpl<T, S, U>
 				getterThrowableTetraFunction,
 			Class<A> aClass, Class<B> bClass) {
 
-			_neededProviderConsumer.accept(aClass.getName());
-			_neededProviderConsumer.accept(bClass.getName());
+			ActionSemantics actionSemantics = ActionSemantics.ofResource(
+				_nestedResource
+			).name(
+				"retrieve"
+			).method(
+				"GET"
+			).provide(
+				Pagination.class, aClass, bClass
+			).returns(
+				Page.class
+			).receivesNothing(
+			).execute(
+				params -> getterThrowableTetraFunction.andThen(
+					pageItems -> new PageImpl<>(
+						_nestedResource.getName(), pageItems,
+						(Pagination)params.get(0), emptyList())
+				).apply(
+					(Pagination)params.get(0), unsafeCast(params.get(3)),
+					unsafeCast(params.get(1)), unsafeCast(params.get(2))
+				)
+			);
 
-			ActionKey actionKey = _getActionKeyForNested(_name, _nestedName);
-
-			_actionManager.add(
-				actionKey,
-				(id, body, list) -> getterThrowableTetraFunction.apply(
-					(Pagination)list.get(0), (U)id, (A)list.get(1),
-					(B)list.get(2)),
-				Pagination.class, aClass, bClass);
+			_actionSemantics.add(actionSemantics);
 
 			return this;
 		}
@@ -529,15 +692,29 @@ public class NestedCollectionRoutesImpl<T, S, U>
 				getterThrowableTriFunction,
 			Class<A> aClass) {
 
-			_neededProviderConsumer.accept(aClass.getName());
+			ActionSemantics actionSemantics = ActionSemantics.ofResource(
+				_nestedResource
+			).name(
+				"retrieve"
+			).method(
+				"GET"
+			).provide(
+				Pagination.class, aClass
+			).returns(
+				Page.class
+			).receivesNothing(
+			).execute(
+				params -> getterThrowableTriFunction.andThen(
+					pageItems -> new PageImpl<>(
+						_nestedResource.getName(), pageItems,
+						(Pagination)params.get(0), emptyList())
+				).apply(
+					(Pagination)params.get(0), unsafeCast(params.get(2)),
+					unsafeCast(params.get(1))
+				)
+			);
 
-			ActionKey actionKey = _getActionKeyForNested(_name, _nestedName);
-
-			_actionManager.add(
-				actionKey,
-				(id, body, list) -> getterThrowableTriFunction.apply(
-					(Pagination)list.get(0), (U)id, (A)list.get(1)),
-				Pagination.class, aClass);
+			_actionSemantics.add(actionSemantics);
 
 			return this;
 		}
@@ -545,16 +722,6 @@ public class NestedCollectionRoutesImpl<T, S, U>
 		@Override
 		public NestedCollectionRoutes<T, S, U> build() {
 			return new NestedCollectionRoutesImpl<>(this);
-		}
-
-		private ActionKey _getActionKeyForNested(
-			String name, String nestedName) {
-
-			if (name.equals("r")) {
-				return new ActionKey(GET.name(), name, nestedName, ANY_ROUTE);
-			}
-
-			return new ActionKey(GET.name(), name, ANY_ROUTE, nestedName);
 		}
 
 		private <V> List<S> _transformList(
@@ -577,26 +744,15 @@ public class NestedCollectionRoutesImpl<T, S, U>
 			return newList;
 		}
 
-		private final ActionManager _actionManager;
-		private Form _form;
-		private ThrowableBiFunction<Credentials, U, Boolean>
-			_hasNestedAddingPermissionFunction;
+		private final List<ActionSemantics> _actionSemantics =
+			new ArrayList<>();
 		private final Function<T, S> _modelToIdentifierFunction;
-		private final String _name;
 		private final Function<String, Optional<String>> _nameFunction;
-		private final Consumer<String> _neededProviderConsumer;
-		private NestedBatchCreateItemFunction<S, U>
-			_nestedBatchCreateItemFunction;
-		private NestedCreateItemFunction<T, U> _nestedCreateItemFunction;
-		private final String _nestedName;
+		private final Resource.Nested _nestedResource;
 		private final IdentifierFunction<?> _pathToIdentifierFunction;
-		private final ProvideFunction _provideFunction;
 
 	}
 
-	private final Form _form;
-	private final NestedBatchCreateItemFunction<S, U>
-		_nestedBatchCreateItemFunction;
-	private final NestedCreateItemFunction<T, U> _nestedCreateItemFunction;
+	private final List<ActionSemantics> _actionSemantics;
 
 }
