@@ -18,6 +18,8 @@ import com.liferay.apio.architect.annotation.Vocabulary.Field;
 
 import java.lang.reflect.Method;
 
+import javax.validation.constraints.NotNull;
+
 /**
  * Holds information about a field annotated with {@link Field}
  *
@@ -28,6 +30,7 @@ public class FieldData<T> {
 
 	public FieldData(Method method, T data) {
 		_field = method.getAnnotation(Field.class);
+		_required = method.isAnnotationPresent(NotNull.class);
 		_method = method;
 		_data = data;
 	}
@@ -76,8 +79,13 @@ public class FieldData<T> {
 		return _method.getName();
 	}
 
+	public boolean isRequired() {
+		return _required;
+	}
+
 	private final T _data;
 	private final Field _field;
 	private final Method _method;
+	private final boolean _required;
 
 }
