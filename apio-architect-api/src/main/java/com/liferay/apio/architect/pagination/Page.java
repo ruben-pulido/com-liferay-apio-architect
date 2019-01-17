@@ -84,10 +84,10 @@ public interface Page<T> {
 	public Optional<Path> getPathOptional();
 
 	/**
-	 * The page's resource. It can be either a {@link Resource.Paged} or a
-	 * {@link Resource.Nested}
+	 * The page's resource. It can be either a {@link 
+	 * com.liferay.apio.architect.resource.Resource.Paged} or a {@link 
+	 * com.liferay.apio.architect.resource.Resource.Nested}.
 	 *
-	 * @review
 	 */
 	public Resource getResource();
 

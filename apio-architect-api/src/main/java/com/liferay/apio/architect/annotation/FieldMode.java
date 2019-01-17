@@ -15,58 +15,44 @@
 package com.liferay.apio.architect.annotation;
 
 /**
- * Mode in which a field of a type can be used
+ * Defines the mode in which a field of a type can be used.
  *
  * @author Víctor Galán
- * @review
  */
 public enum FieldMode {
 
 	/**
 	 * Indicates that a field should only be used when instantiating the
-	 * interface out of the HTTP request body.
+	 * interface from the HTTP request body. A field with this mode is ignored
+	 * when representing the type in any format.
 	 *
 	 * <p>
-	 * A field with this mode will be ignored instantiating the interface out of
-	 * the HTTP request body.
-	 * </p>
-	 *
-	 * <p>
-	 * Opposite attribute to {@link #WRITE_ONLY}.
+	 * This attribute is the opposite of {@link #WRITE_ONLY}.
 	 * </p>
 	 *
 	 * @see    #WRITE_ONLY
-	 * @review
 	 */
 	READ_ONLY,
 
 	/**
 	 * Indicates that a field should be used when instantiating the interface
-	 * out of the HTTP request body and also when representing the type.
+	 * from the HTTP request body, and when representing the type. Note that 
+	 * this is effectively a combination of {@link #READ_ONLY} and {@link 
+	 * #WRITE_ONLY}.
 	 *
-	 * <p>
-	 * {@link #READ_ONLY} and {@link #WRITE_ONLY} together
-	 * </p>
-	 *
-	 * @review
 	 */
 	READ_WRITE,
 
 	/**
-	 * Indicates that a field should only be used when instantiating the
-	 * interface out of the HTTP request body.
+	 * Indicates that a field should only be used when representing the type in
+	 * any format. A field with this mode is ignored when instantiating the
+	 * interface from the HTTP request body.
 	 *
 	 * <p>
-	 * A field with this mode will be ignored when representing the type in any
-	 * format.
-	 * </p>
-	 *
-	 * <p>
-	 * Opposite attribute to {@link #READ_ONLY}.
+	 * This attribute is the opposite of {@link #READ_ONLY}.
 	 * </p>
 	 *
 	 * @see    #READ_ONLY
-	 * @review
 	 */
 	WRITE_ONLY
 
