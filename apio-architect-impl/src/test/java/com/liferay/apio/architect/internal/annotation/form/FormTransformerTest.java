@@ -67,18 +67,17 @@ public class FormTransformerTest {
 		assertThat(dummy.getBooleanListField2(), is(asList(false, true)));
 		assertThat(dummy.getDateField1(), equalTo(new Date(1465981200000L)));
 		assertThat(dummy.getDateField2(), is(new Date(1491244560000L)));
-		assertThat(dummy.getNumberListField1(), is(asList(1L, 2L)));
 		assertThat(dummy.getLinkToChildCollectionList(), is(asList(3, 2, 1)));
+		assertThat(dummy.getNumberField2(), is(20L));
+		assertThat(dummy.getNumberListField1(), is(asList(1L, 2L)));
+		assertThat(dummy.getNumberListField2(), is(asList(3L, 4L)));
 		assertThat(dummy.getRelativeUrl1(), is("/first"));
 		assertThat(dummy.getRelativeUrl2(), is("/second"));
 		assertThat(dummy.getStringField1(), is("string1"));
-		assertThat(
-			dummy.getStringFieldOptional(), is(Optional.of("stringOptional")));
-
-		assertThat(dummy.getNumberField2(), is(20L));
-		assertThat(dummy.getNumberListField2(), is(asList(3L, 4L)));
 		assertThat(dummy.getStringListField1(), is(asList("one", "two")));
 		assertThat(dummy.getStringListField2(), is(asList("three", "four")));
+		assertThat(
+			dummy.getStringFieldOptional(), is(Optional.of("stringOptional")));
 	}
 
 	@Test(expected = BadRequestException.class)
