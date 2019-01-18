@@ -30,8 +30,8 @@ public class FieldData<T> {
 
 	public FieldData(Method method, T data) {
 		_field = method.getAnnotation(Field.class);
-		_required = method.isAnnotationPresent(NotNull.class);
 		_method = method;
+		_required = method.isAnnotationPresent(NotNull.class);
 		_data = data;
 	}
 
