@@ -342,7 +342,7 @@ public final class URLCreator {
 		Function<Path, String> function) {
 
 		return path -> function.andThen(
-			s -> s != null && !s.isEmpty()
+			s -> (s != null) && !s.isEmpty()
 		).apply(
 			path
 		);
