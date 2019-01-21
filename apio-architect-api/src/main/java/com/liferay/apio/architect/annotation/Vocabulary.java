@@ -93,10 +93,10 @@ public @interface Vocabulary {
 		 * This method is the opposite of {@link #writeOnly()}.
 		 * </p>
 		 *
-		 * @see        #writeOnly()
-		 * @deprecated Replaced by {@link #mode()}
 		 * @return     {@code true} if a field should only be used when
 		 *             representing the type; {@code false} otherwise
+		 * @see        #writeOnly()
+		 * @deprecated Replaced by {@link #mode()}
 		 */
 		@Deprecated
 		public boolean readOnly() default false;
@@ -126,11 +126,11 @@ public @interface Vocabulary {
 		 * This method is the opposite of {@link #readOnly()}.
 		 * </p>
 		 *
-		 * @see        #readOnly()
-		 * @deprecated Replaced by {@link #mode()}
 		 * @return     {@code true} if a field should only be used when
 		 *             instantiating the interface from the HTTP request body;
 		 *             {@code false} otherwise
+		 * @see        #readOnly()
+		 * @deprecated Replaced by {@link #mode()}
 		 */
 		@Deprecated
 		public boolean writeOnly() default false;
@@ -168,7 +168,6 @@ public @interface Vocabulary {
 	 * links to single resources ({@link ResourceType#SINGLE}) and links to
 	 * collections ({@link ResourceType#CHILD_COLLECTION}).
 	 * </p>
-	 *
 	 */
 	@Retention(RUNTIME)
 	@Target(METHOD)
@@ -177,20 +176,17 @@ public @interface Vocabulary {
 		/**
 		 * Returns the class of the resource being linked to. It must be
 		 * annotated with {@link Type}.
-		 *
 		 */
 		public Class<? extends Identifier<?>> resource();
 
 		/**
 		 * Returns the resource type being linked to. This value affects the way
 		 * the link is created.
-		 *
 		 */
 		public ResourceType resourceType() default ResourceType.SINGLE;
 
 		/**
 		 * Defines the types of resources that can be linked to other resources.
-		 *
 		 */
 		public enum ResourceType {
 
@@ -198,7 +194,6 @@ public @interface Vocabulary {
 			 * Denotes that the linked resource is a collection whose parent is
 			 * the resource being linked to. Only use this type on fields that
 			 * return the resource's ID.
-			 *
 			 */
 			CHILD_COLLECTION,
 
@@ -206,14 +201,13 @@ public @interface Vocabulary {
 			 * Denotes that the linked resource is a collection whose generic
 			 * parent is the ID being returned.
 			 *
-			 * @see    GenericParentId
+			 * @see GenericParentId
 			 */
 			GENERIC_PARENT_COLLECTION,
 
 			/**
 			 * Denotes that the linked resource is a single resource (not a
 			 * collection), and that the field returns its ID.
-			 *
 			 */
 			SINGLE
 
@@ -237,7 +231,8 @@ public @interface Vocabulary {
 		/**
 		 * Returns {@code true} if the action is reusable.
 		 *
-		 * @return {@code true} if the action is reusable; false otherwise
+		 * @return {@code true} if the action is reusable; <code>false</code>
+		 *         otherwise
 		 */
 		public boolean reusable() default false;
 

@@ -39,7 +39,6 @@ public class Resource {
 
 	/**
 	 * Returns the resource's name.
-	 *
 	 */
 	public String getName() {
 		return _name;
@@ -63,7 +62,6 @@ public class Resource {
 	 * /comment/by-generic-parent/blog-post:42}
 	 * </li>
 	 * <ul>
-	 *
 	 */
 	public static class GenericParent extends Resource {
 
@@ -116,7 +114,6 @@ public class Resource {
 
 		/**
 		 * Returns the resource's generic parent ID.
-		 *
 		 */
 		public Optional<Id> getParentIdOptional() {
 			return Optional.ofNullable(_parentId);
@@ -124,7 +121,6 @@ public class Resource {
 
 		/**
 		 * Returns the resource's generic parent name.
-		 *
 		 */
 		public String getParentName() {
 			return _parentName;
@@ -182,36 +178,34 @@ public class Resource {
 	/**
 	 * Represents an item's ID. You should never instantiate this class
 	 * directly. Always use the {@link Id#of} method to create a new instance.
-	 *
 	 */
 	public static class Id {
 
 		/**
-		 * Creates a new {@code Id} with the provided object-string pair.
+		 * Creates a new {@code ID} with the provided object-string pair.
 		 *
 		 * @param  objectVersion the object
-		 * @param  objectVersion the string
-		 * @return the new {@code Id}
+		 * @return the new {@code ID}
 		 */
 		public static Id of(Object objectVersion, String stringVersion) {
 			return new Id(objectVersion, stringVersion);
 		}
 
 		/**
-		 * Returns the {@code Id} as an {@code Object} instance. This can be any
+		 * Returns the {@code ID} as an {@code Object} instance. This can be any
 		 * class supported by a {@link
 		 * com.liferay.apio.architect.uri.mapper.PathIdentifierMapper}.
 		 *
-		 * @return the {@code Id} as an {@code Object} instance
+		 * @return the {@code ID} as an {@code Object} instance
 		 */
 		public Object asObject() {
 			return _objectVersion;
 		}
 
 		/**
-		 * Returns the {@code Id} as a {@code String} instance.
+		 * Returns the {@code ID} as a {@code String} instance.
 		 *
-		 * @return the {@code Id} as a {@code String} instance
+		 * @return the {@code ID} as a {@code String} instance
 		 */
 		public String asString() {
 			return _stringVersion;
@@ -266,7 +260,6 @@ public class Resource {
 	/**
 	 * Represents an item resource. You should never instantiate this class
 	 * directly. Always use an {@link Item#of} method to create a new instance.
-	 *
 	 */
 	public static class Item extends Resource {
 
@@ -282,10 +275,9 @@ public class Resource {
 
 		/**
 		 * Creates a new {@code Item} with the provided {@code name} and {@code
-		 * Id}.
+		 * ID}.
 		 *
 		 * @param  name the name
-		 * @param  name the {@code Id}
 		 * @return the new {@code Item}
 		 */
 		public static Item of(String name, Id id) {
@@ -374,7 +366,6 @@ public class Resource {
 	 * Represents a nested resource. You should never instantiate this class
 	 * directly. Always use the {@link Nested#of} method to create a new
 	 * instance.
-	 *
 	 */
 	public static class Nested extends Resource {
 
@@ -420,7 +411,7 @@ public class Resource {
 		/**
 		 * The resource's parent item.
 		 *
-		 * @return  the parent item
+		 * @return the parent item
 		 */
 		public Item getParentItem() {
 			return _parentItem;
@@ -469,7 +460,6 @@ public class Resource {
 	 * Represents a paged resource. You should never instantiate this class
 	 * directly. Always use the {@link Paged#of} method to create a new
 	 * instance.
-	 *
 	 */
 	public static class Paged extends Resource {
 

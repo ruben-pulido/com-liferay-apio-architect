@@ -30,16 +30,15 @@ public enum FieldMode {
 	 * This attribute is the opposite of {@link #WRITE_ONLY}.
 	 * </p>
 	 *
-	 * @see    #WRITE_ONLY
+	 * @see #WRITE_ONLY
 	 */
 	READ_ONLY,
 
 	/**
 	 * Indicates that a field should be used when instantiating the interface
-	 * from the HTTP request body, and when representing the type. Note that 
-	 * this is effectively a combination of {@link #READ_ONLY} and {@link 
+	 * from the HTTP request body, and when representing the type. Note that
+	 * this is effectively a combination of {@link #READ_ONLY} and {@link
 	 * #WRITE_ONLY}.
-	 *
 	 */
 	READ_WRITE,
 
@@ -53,6 +52,29 @@ public enum FieldMode {
 	 * </p>
 	 *
 	 * @see    #READ_ONLY
+	 */
+	/**
+	 * Indicates that a field should only be used when representing the type in
+	 * any format. A field with this mode is ignored when instantiating the
+	 * interface from the HTTP request body.
+	 *
+	 * <p>
+	 * This attribute is the opposite of {@link #READ_ONLY}.
+	 * </p>
+	 *
+	 * @see #READ_ONLY
+	 */
+	/**
+	 * Indicates that a field should only be used when representing the type in
+	 * any format. A field with this mode is ignored when instantiating the
+	 * interface from the HTTP request body.
+	 *
+	 * <p>
+	 * This attribute is the opposite of {@link #READ_ONLY}.
+	 * </p>
+	 *
+	 * @see #READ_ONLY
+	 * @see #READ_ONLY
 	 */
 	WRITE_ONLY
 
