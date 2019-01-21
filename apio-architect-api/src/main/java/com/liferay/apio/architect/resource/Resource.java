@@ -61,7 +61,7 @@ public class Resource {
 	 * Comments by a generic parent ({@link GenericParent}: {@code
 	 * /comment/by-generic-parent/blog-post:42}
 	 * </li>
-	 * <ul>
+	 * </ul>
 	 */
 	public static class GenericParent extends Resource {
 
